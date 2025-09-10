@@ -1,0 +1,1 @@
+1. di setiap services ubah "return MessageResponse(c, http.StatusCreated, "Brand created successfully")" menjadi "return c.JSON(http.StatusCreated, response)" seperti pada service CreateBrand
