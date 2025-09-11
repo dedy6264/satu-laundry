@@ -40,18 +40,27 @@ func main() {
 	brandRepo := repositories.NewBrandRepository(db)
 	cabangRepo := repositories.NewCabangRepository(db)
 	outletRepo := repositories.NewOutletRepository(db)
+	inquiryRepo := repositories.NewInquiryRepository(db)
+	employeeRepo := repositories.NewEmployeeRepository(db)
+	customerRepo := repositories.NewCustomerRepository(db)
 
 	// Initialize usecases
 	authUsecase := usecases.NewAuthUsecase(userRepo)
 	brandUsecase := usecases.NewBrandUsecase(brandRepo)
 	cabangUsecase := usecases.NewCabangUsecase(cabangRepo)
 	outletUsecase := usecases.NewOutletUsecase(outletRepo)
+	inquiryUsecase := usecases.NewInquiryUsecase(inquiryRepo)
+	employeeUsecase := usecases.NewEmployeeUsecase(employeeRepo)
+	customerUsecase := usecases.NewCustomerUsecase(customerRepo)
 
 	// Initialize handlers
 	authHandler := delivery.NewAuthHandler(authUsecase)
 	brandHandler := delivery.NewBrandHandler(brandUsecase)
 	cabangHandler := delivery.NewCabangHandler(cabangUsecase)
 	outletHandler := delivery.NewOutletHandler(outletUsecase)
+	inquiryHandler := delivery.NewInquiryHandler(inquiryUsecase)
+	employeeHandler := delivery.NewEmployeeHandler(employeeUsecase)
+	customerHandler := delivery.NewCustomerHandler(customerUsecase)
 
 	// Initialize Echo instance
 	e := echo.New()
@@ -73,6 +82,7 @@ func main() {
 	// Routes
 	// Auth routes
 	e.POST("/api/v1/login", authHandler.Login)
+	e.POST("/api/v1/pegawai/login", employeeHandler.Login)
 
 	// Protected routes
 	api := e.Group("/api/v1")
@@ -101,6 +111,24 @@ func main() {
 		api.GET("/outlets", outletHandler.GetAllOutlets)
 		api.PUT("/outlets/:id", outletHandler.UpdateOutlet)
 		api.DELETE("/outlets/:id", outletHandler.DeleteOutlet)
+
+		// Inquiry routes
+		api.POST("/inquiry", inquiryHandler.ProcessInquiry)
+
+		// Employee routes
+		api.POST("/pegawai", employeeHandler.CreateEmployee)
+		api.GET("/pegawai/:id", employeeHandler.GetEmployeeByID)
+		api.GET("/pegawai", employeeHandler.GetAllEmployees)
+		api.PUT("/pegawai/:id", employeeHandler.UpdateEmployee)
+		api.DELETE("/pegawai/:id", employeeHandler.DeleteEmployee)
+
+		// Customer routes
+		api.POST("/pelanggan", customerHandler.CreateCustomer)
+		api.GET("/pelanggan/:id", customerHandler.GetCustomerByID)
+		api.GET("/pelanggan/outlet/:outlet_id", customerHandler.GetCustomersByOutletID)
+		api.GET("/pelanggan", customerHandler.GetAllCustomers)
+		api.PUT("/pelanggan/:id", customerHandler.UpdateCustomer)
+		api.DELETE("/pelanggan/:id", customerHandler.DeleteCustomer)
 	}
 	// Start server
 	e.Logger.Fatal(e.Start(config.Server.Address))
