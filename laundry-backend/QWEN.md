@@ -1,1 +1,1 @@
-1. make 
+1. buatkan api inquiry dengan pengamanan jwt, data akan diinsert pada tabel transaksi, validasi utama request meliputi paket layanan, pegawai, pelanggan

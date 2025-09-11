@@ -16,6 +16,15 @@ func NewOutletUsecase(outletRepo repositories.OutletRepository) OutletUsecase {
 }
 
 func (u *outletUsecase) CreateOutlet(request entities.RegisterOutletRequest) error {
+	// Convert float64 to pointers
+	var latPtr, lonPtr *float64
+	if request.Latitude != 0 {
+		latPtr = &request.Latitude
+	}
+	if request.Longitude != 0 {
+		lonPtr = &request.Longitude
+	}
+
 	outlet := &entities.Outlet{
 		CabangID:    request.CabangID,
 		Name:        request.Name,
@@ -25,8 +34,8 @@ func (u *outletUsecase) CreateOutlet(request entities.RegisterOutletRequest) err
 		PostalCode:  request.PostalCode,
 		Phone:       request.Phone,
 		Email:       request.Email,
-		Latitude:    request.Latitude,
-		Longitude:   request.Longitude,
+		Latitude:    latPtr,
+		Longitude:   lonPtr,
 		OpenTime:    request.OpenTime,
 		CloseTime:   request.CloseTime,
 		PICName:     request.PICName,
@@ -94,6 +103,15 @@ func (u *outletUsecase) UpdateOutlet(id int, request entities.RegisterOutletRequ
 		return nil // Outlet tidak ditemukan
 	}
 
+	// Convert float64 to pointers
+	var latPtr, lonPtr *float64
+	if request.Latitude != 0 {
+		latPtr = &request.Latitude
+	}
+	if request.Longitude != 0 {
+		lonPtr = &request.Longitude
+	}
+
 	outlet.CabangID = request.CabangID
 	outlet.Name = request.Name
 	outlet.Address = request.Address
@@ -102,8 +120,8 @@ func (u *outletUsecase) UpdateOutlet(id int, request entities.RegisterOutletRequ
 	outlet.PostalCode = request.PostalCode
 	outlet.Phone = request.Phone
 	outlet.Email = request.Email
-	outlet.Latitude = request.Latitude
-	outlet.Longitude = request.Longitude
+	outlet.Latitude = latPtr
+	outlet.Longitude = lonPtr
 	outlet.OpenTime = request.OpenTime
 	outlet.CloseTime = request.CloseTime
 	outlet.PICName = request.PICName

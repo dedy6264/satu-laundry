@@ -36,3 +36,27 @@ type OutletUsecase interface {
 	UpdateOutlet(id int, request entities.RegisterOutletRequest) error
 	DeleteOutlet(id int) error
 }
+
+type InquiryUsecase interface {
+	ProcessInquiry(request entities.InquiryRequest) error
+}
+
+type EmployeeUsecase interface {
+	CreateEmployee(request entities.RegisterEmployeeRequest) error
+	GetEmployeeByID(id int) (*entities.Employee, error)
+	GetAllEmployees() ([]entities.Employee, error)
+	GetAllEmployeesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	UpdateEmployee(id int, request entities.RegisterEmployeeRequest) error
+	DeleteEmployee(id int) error
+	Login(request entities.EmployeeLoginRequest) (*entities.EmployeeLoginResponse, error)
+}
+
+type CustomerUsecase interface {
+	CreateCustomer(request entities.RegisterCustomerRequest) error
+	GetCustomerByID(id int) (*entities.Customer, error)
+	GetCustomersByOutletID(outletID int) ([]entities.Customer, error)
+	GetAllCustomers() ([]entities.Customer, error)
+	GetAllCustomersDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	UpdateCustomer(id int, request entities.RegisterCustomerRequest) error
+	DeleteCustomer(id int) error
+}

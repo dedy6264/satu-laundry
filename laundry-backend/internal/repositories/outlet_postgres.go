@@ -16,11 +16,20 @@ func NewOutletRepository(db *sql.DB) OutletRepository {
 }
 
 func (r *outletPostgresRepository) Create(outlet *entities.Outlet) error {
+	// Handle nullable float fields
+	var lat, lon interface{}
+	if outlet.Latitude != nil {
+		lat = *outlet.Latitude
+	}
+	if outlet.Longitude != nil {
+		lon = *outlet.Longitude
+	}
+
 	query := `INSERT INTO outlet (id_cabang, nama_outlet, alamat, kota, provinsi, kode_pos, telepon, email, 
 		latitude, longitude, jam_buka, jam_tutup, pic_nama, pic_email, pic_telepon, created_at, updated_at) 
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()) RETURNING id_outlet`
 	return r.db.QueryRow(query, outlet.CabangID, outlet.Name, outlet.Address, outlet.City, outlet.Province, 
-		outlet.PostalCode, outlet.Phone, outlet.Email, outlet.Latitude, outlet.Longitude, outlet.OpenTime, 
+		outlet.PostalCode, outlet.Phone, outlet.Email, lat, lon, outlet.OpenTime, 
 		outlet.CloseTime, outlet.PICName, outlet.PICEmail, outlet.PICTelepon).Scan(&outlet.ID)
 }
 
@@ -31,6 +40,7 @@ func (r *outletPostgresRepository) FindByID(id int) (*entities.Outlet, error) {
 	row := r.db.QueryRow(query, id)
 
 	var outlet entities.Outlet
+	var lat, lon sql.NullFloat64
 	err := row.Scan(
 		&outlet.ID,
 		&outlet.CabangID,
@@ -41,8 +51,8 @@ func (r *outletPostgresRepository) FindByID(id int) (*entities.Outlet, error) {
 		&outlet.PostalCode,
 		&outlet.Phone,
 		&outlet.Email,
-		&outlet.Latitude,
-		&outlet.Longitude,
+		&lat,
+		&lon,
 		&outlet.OpenTime,
 		&outlet.CloseTime,
 		&outlet.PICName,
@@ -56,6 +66,14 @@ func (r *outletPostgresRepository) FindByID(id int) (*entities.Outlet, error) {
 			return nil, nil
 		}
 		return nil, err
+	}
+
+	// Handle nullable float fields
+	if lat.Valid {
+		outlet.Latitude = &lat.Float64
+	}
+	if lon.Valid {
+		outlet.Longitude = &lon.Float64
 	}
 
 	return &outlet, nil
@@ -74,6 +92,7 @@ func (r *outletPostgresRepository) FindByCabangID(cabangID int) ([]entities.Outl
 	var outlets []entities.Outlet
 	for rows.Next() {
 		var outlet entities.Outlet
+		var lat, lon sql.NullFloat64
 		err := rows.Scan(
 			&outlet.ID,
 			&outlet.CabangID,
@@ -84,8 +103,8 @@ func (r *outletPostgresRepository) FindByCabangID(cabangID int) ([]entities.Outl
 			&outlet.PostalCode,
 			&outlet.Phone,
 			&outlet.Email,
-			&outlet.Latitude,
-			&outlet.Longitude,
+			&lat,
+			&lon,
 			&outlet.OpenTime,
 			&outlet.CloseTime,
 			&outlet.PICName,
@@ -97,6 +116,15 @@ func (r *outletPostgresRepository) FindByCabangID(cabangID int) ([]entities.Outl
 		if err != nil {
 			return nil, err
 		}
+
+		// Handle nullable float fields
+		if lat.Valid {
+			outlet.Latitude = &lat.Float64
+		}
+		if lon.Valid {
+			outlet.Longitude = &lon.Float64
+		}
+
 		outlets = append(outlets, outlet)
 	}
 
@@ -116,6 +144,7 @@ func (r *outletPostgresRepository) FindAll() ([]entities.Outlet, error) {
 	var outlets []entities.Outlet
 	for rows.Next() {
 		var outlet entities.Outlet
+		var lat, lon sql.NullFloat64
 		err := rows.Scan(
 			&outlet.ID,
 			&outlet.CabangID,
@@ -126,8 +155,8 @@ func (r *outletPostgresRepository) FindAll() ([]entities.Outlet, error) {
 			&outlet.PostalCode,
 			&outlet.Phone,
 			&outlet.Email,
-			&outlet.Latitude,
-			&outlet.Longitude,
+			&lat,
+			&lon,
 			&outlet.OpenTime,
 			&outlet.CloseTime,
 			&outlet.PICName,
@@ -139,6 +168,15 @@ func (r *outletPostgresRepository) FindAll() ([]entities.Outlet, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// Handle nullable float fields
+		if lat.Valid {
+			outlet.Latitude = &lat.Float64
+		}
+		if lon.Valid {
+			outlet.Longitude = &lon.Float64
+		}
+
 		outlets = append(outlets, outlet)
 	}
 
@@ -220,6 +258,7 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 	var outlets []entities.Outlet
 	for rows.Next() {
 		var outlet entities.Outlet
+		var lat, lon sql.NullFloat64
 		err := rows.Scan(
 			&outlet.ID,
 			&outlet.CabangID,
@@ -230,8 +269,8 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 			&outlet.PostalCode,
 			&outlet.Phone,
 			&outlet.Email,
-			&outlet.Latitude,
-			&outlet.Longitude,
+			&lat,
+			&lon,
 			&outlet.OpenTime,
 			&outlet.CloseTime,
 			&outlet.PICName,
@@ -243,6 +282,15 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 		if err != nil {
 			return nil, 0, 0, err
 		}
+
+		// Handle nullable float fields
+		if lat.Valid {
+			outlet.Latitude = &lat.Float64
+		}
+		if lon.Valid {
+			outlet.Longitude = &lon.Float64
+		}
+
 		outlets = append(outlets, outlet)
 	}
 	
@@ -268,11 +316,20 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 }
 
 func (r *outletPostgresRepository) Update(outlet *entities.Outlet) error {
+	// Handle nullable float fields
+	var lat, lon interface{}
+	if outlet.Latitude != nil {
+		lat = *outlet.Latitude
+	}
+	if outlet.Longitude != nil {
+		lon = *outlet.Longitude
+	}
+
 	query := `UPDATE outlet SET id_cabang = $1, nama_outlet = $2, alamat = $3, kota = $4, provinsi = $5, 
 		kode_pos = $6, telepon = $7, email = $8, latitude = $9, longitude = $10, jam_buka = $11, jam_tutup = $12, 
 		pic_nama = $13, pic_email = $14, pic_telepon = $15, updated_at = NOW() WHERE id_outlet = $16`
 	_, err := r.db.Exec(query, outlet.CabangID, outlet.Name, outlet.Address, outlet.City, outlet.Province, 
-		outlet.PostalCode, outlet.Phone, outlet.Email, outlet.Latitude, outlet.Longitude, outlet.OpenTime, 
+		outlet.PostalCode, outlet.Phone, outlet.Email, lat, lon, outlet.OpenTime, 
 		outlet.CloseTime, outlet.PICName, outlet.PICEmail, outlet.PICTelepon, outlet.ID)
 	return err
 }

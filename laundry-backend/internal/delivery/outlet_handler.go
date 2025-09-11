@@ -86,14 +86,20 @@ func (h *OutletHandler) GetOutletsByCabangID(c echo.Context) error {
 func (h *OutletHandler) GetAllOutlets(c echo.Context) error {
 	var (
 		svcName = "GetAllOutlets"
+		request entities.DataTablesRequest
 	)
-	outlets, err := h.outletUsecase.GetAllOutlets()
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Failed to bind request", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
+	}
+
+	response, err := h.outletUsecase.GetAllOutletsDataTables(request)
 	if err != nil {
 		utils.LoggMsg(svcName, "Failed to get outlets", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to get outlets", err.Error())
 	}
 
-	return SuccessResponse(c, http.StatusOK, "Outlets retrieved successfully", outlets)
+	return SuccessResponse(c, http.StatusOK, "Outlets retrieved successfully", response)
 }
 
 func (h *OutletHandler) UpdateOutlet(c echo.Context) error {

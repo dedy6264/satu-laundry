@@ -86,14 +86,20 @@ func (h *CabangHandler) GetCabangsByBrandID(c echo.Context) error {
 func (h *CabangHandler) GetAllCabangs(c echo.Context) error {
 	var (
 		svcName = "GetAllCabangs"
+		request entities.DataTablesRequest
 	)
-	cabangs, err := h.cabangUsecase.GetAllCabangs()
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Failed to bind request", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
+	}
+
+	response, err := h.cabangUsecase.GetAllCabangsDataTables(request)
 	if err != nil {
 		utils.LoggMsg(svcName, "Failed to get cabangs", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to get cabangs", err.Error())
 	}
 
-	return SuccessResponse(c, http.StatusOK, "Cabangs retrieved successfully", cabangs)
+	return SuccessResponse(c, http.StatusOK, "Cabangs retrieved successfully", response)
 }
 
 func (h *CabangHandler) UpdateCabang(c echo.Context) error {

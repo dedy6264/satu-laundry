@@ -50,3 +50,41 @@ type RegisterOutletRequest struct {
 	PICEmail   string  `json:"pic_email"`
 	PICTelepon string  `json:"pic_telepon"`
 }
+
+type InquiryRequest struct {
+	ServicePackageID int     `json:"id_layanan" validare:"required"`
+	CustomerID       int     `json:"id_pelanggan" validare:"required"`
+	OutletID         int     `json:"id_outlet"`
+	EmployeeID       int     `json:"id_pegawai"`
+	Quantity         float64 `json:"jumlah" validare:"required"`
+	Note             string  `json:"catatan"`
+}
+
+type RegisterEmployeeRequest struct {
+	OutletID  int     `json:"id_outlet"`
+	NIK       string  `json:"nik"`
+	Name      string  `json:"nama_lengkap"`
+	Email     string  `json:"email"`
+	Phone     string  `json:"telepon"`
+	Address   string  `json:"alamat"`
+	BirthDate string  `json:"tanggal_lahir"`
+	Gender    string  `json:"jenis_kelamin"`
+	Position  string  `json:"posisi"`
+	Salary    float64 `json:"gaji"`
+	JoinDate  string  `json:"tanggal_masuk"`
+	Status    string  `json:"status"`
+	Password  string  `json:"password"`
+}
+
+type EmployeeLoginRequest struct {
+	Email    string `json:"email"` // Can be email, NIK, or phone
+	Password string `json:"password"`
+}
+
+type RegisterCustomerRequest struct {
+	OutletID int    `json:"id_outlet"`
+	Name     string `json:"nama"`
+	Email    string `json:"email"`
+	Phone    string `json:"telepon"`
+	Address  string `json:"alamat"`
+}

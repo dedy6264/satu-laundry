@@ -67,14 +67,20 @@ func (h *BrandHandler) GetBrandByID(c echo.Context) error {
 func (h *BrandHandler) GetAllBrands(c echo.Context) error {
 	var (
 		svcName = "GetAllBrands"
+		request entities.DataTablesRequest
 	)
-	brands, err := h.brandUsecase.GetAllBrands()
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Failed to bind request", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
+	}
+
+	response, err := h.brandUsecase.GetAllBrandsDataTables(request)
 	if err != nil {
 		utils.LoggMsg(svcName, "Failed to get brands", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to get brands", err.Error())
 	}
 
-	return SuccessResponse(c, http.StatusOK, "Brands retrieved successfully", brands)
+	return SuccessResponse(c, http.StatusOK, "Brands retrieved successfully", response)
 }
 
 func (h *BrandHandler) UpdateBrand(c echo.Context) error {
