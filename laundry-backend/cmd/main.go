@@ -40,8 +40,8 @@ func main() {
 	brandRepo := repositories.NewBrandRepository(db)
 	cabangRepo := repositories.NewCabangRepository(db)
 	outletRepo := repositories.NewOutletRepository(db)
-	inquiryRepo := repositories.NewInquiryRepository(db)
 	employeeRepo := repositories.NewEmployeeRepository(db)
+	inquiryRepo := repositories.NewInquiryRepository(db, employeeRepo)
 	customerRepo := repositories.NewCustomerRepository(db)
 
 	// Initialize usecases
