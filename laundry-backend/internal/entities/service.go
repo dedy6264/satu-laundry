@@ -5,8 +5,9 @@ import (
 )
 
 type Service struct {
+	BrandID     int       `json:"brand_id" `
 	ID          int       `json:"id"`
-	CategoryID  int       `json:"id_kategori"`
+	CategoryID  int       `json:"kategori_id"`
 	Name        string    `json:"nama_layanan"`
 	Description string    `json:"deskripsi"`
 	Price       float64   `json:"harga_per_kg"`
@@ -26,7 +27,7 @@ type ServiceCategory struct {
 
 type CreateServiceRequest struct {
 	BrandID     int     `json:"brand_id" validare:"required"`
-	CategoryID  int     `json:"id_kategori" validare:"required"`
+	CategoryID  int     `json:"kategori_id" validare:"required"`
 	Name        string  `json:"nama_layanan" validare:"required"`
 	Description string  `json:"deskripsi"`
 	Price       float64 `json:"harga_per_kg" validare:"required"`
@@ -35,7 +36,7 @@ type CreateServiceRequest struct {
 }
 
 type UpdateServiceRequest struct {
-	CategoryID  int     `json:"id_kategori" validare:"required"`
+	CategoryID  int     `json:"kategori_id" validare:"required"`
 	Name        string  `json:"nama_layanan" validare:"required"`
 	Description string  `json:"deskripsi"`
 	Price       float64 `json:"harga_per_kg" validare:"required"`

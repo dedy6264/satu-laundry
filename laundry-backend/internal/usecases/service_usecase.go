@@ -17,6 +17,7 @@ func NewServiceUsecase(serviceRepo repositories.ServiceRepository) ServiceUsecas
 
 func (u *serviceUsecase) CreateService(request entities.CreateServiceRequest) error {
 	service := &entities.Service{
+		BrandID:     request.BrandID,
 		CategoryID:  request.CategoryID,
 		Name:        request.Name,
 		Description: request.Description,
@@ -48,7 +49,7 @@ func (u *serviceUsecase) GetAllServicesDataTables(request entities.DataTablesReq
 	// Map column names to database column names
 	columnMap := map[string]string{
 		"id":             "id_layanan",
-		"id_kategori":    "id_kategori",
+		"kategori_id":    "kategori_id",
 		"nama_layanan":   "nama_layanan",
 		"harga":          "harga",
 		"satuan":         "satuan",
@@ -84,8 +85,15 @@ func (u *serviceUsecase) GetAllServicesDataTables(request entities.DataTablesReq
 }
 
 func (u *serviceUsecase) UpdateService(id int, request entities.UpdateServiceRequest) error {
+	// First get the existing service to preserve the BrandID
+	existingService, err := u.serviceRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
 	service := &entities.Service{
 		ID:          id,
+		BrandID:     existingService.BrandID, // Preserve the existing BrandID
 		CategoryID:  request.CategoryID,
 		Name:        request.Name,
 		Description: request.Description,

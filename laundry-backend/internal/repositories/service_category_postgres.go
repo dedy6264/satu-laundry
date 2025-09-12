@@ -1,4 +1,3 @@
-
 package repositories
 
 import (
@@ -119,7 +118,7 @@ func (r *serviceCategoryPostgresRepository) FindAllWithPagination(limit, offset 
 
 	// Add ordering
 	if orderBy == "" {
-		orderBy = "k.id_kategori"
+		orderBy = "k.kategori_id"
 	}
 	if orderDir == "" {
 		orderDir = "ASC"
