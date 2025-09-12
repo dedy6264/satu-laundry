@@ -6,6 +6,7 @@ import (
 	"laundry-backend/internal/utils"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -29,6 +30,7 @@ func (h *ServiceHandler) CreateService(c echo.Context) error {
 		utils.LoggMsg(svcName, "Failed to bind request", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
+	request.Name = strings.ToUpper(request.Name)
 
 	if err := h.serviceUsecase.CreateService(request); err != nil {
 		utils.LoggMsg(svcName, "Failed to create service", err)
@@ -96,6 +98,7 @@ func (h *ServiceHandler) UpdateService(c echo.Context) error {
 		utils.LoggMsg(svcName, "Invalid request format", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
+	request.Name = strings.ToUpper(request.Name)
 
 	if err := h.serviceUsecase.UpdateService(id, request); err != nil {
 		utils.LoggMsg(svcName, "Failed to update service", err)

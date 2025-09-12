@@ -18,7 +18,7 @@ func NewServiceRepository(db *sql.DB) ServiceRepository {
 
 func (r *servicePostgresRepository) Create(service *entities.Service) error {
 	query := `
-		INSERT INTO paket_layanan (id_kategori, nama_layanan, deskripsi, harga, satuan, estimasi_waktu, created_at, updated_at)
+		INSERT INTO paket_layanan (id_kategori, nama_layanan, deskripsi, harga_per_kg, satuan_durasi, durasi_pengerjaan, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
 		RETURNING id_layanan`
 
@@ -33,7 +33,7 @@ func (r *servicePostgresRepository) Create(service *entities.Service) error {
 
 func (r *servicePostgresRepository) FindByID(id int) (*entities.Service, error) {
 	query := `
-		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga, satuan, estimasi_waktu, created_at, updated_at
+		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga_per_kg, satuan_durasi, durasi_pengerjaan, created_at, updated_at
 		FROM paket_layanan
 		WHERE id_layanan = $1`
 
@@ -61,7 +61,7 @@ func (r *servicePostgresRepository) FindByID(id int) (*entities.Service, error) 
 
 func (r *servicePostgresRepository) FindAll() ([]entities.Service, error) {
 	query := `
-		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga, satuan, estimasi_waktu, created_at, updated_at
+		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga_per_kg, satuan_durasi, durasi_pengerjaan, created_at, updated_at
 		FROM paket_layanan
 		ORDER BY id_layanan`
 
@@ -104,7 +104,7 @@ func (r *servicePostgresRepository) FindAllWithPagination(limit, offset int, sea
 
 	// Data query
 	dataQuery := `
-		SELECT l.id_layanan, l.id_kategori, l.nama_layanan, l.deskripsi, l.harga, l.satuan, l.estimasi_waktu, l.created_at, l.updated_at
+		SELECT l.id_layanan, l.id_kategori, l.nama_layanan, l.deskripsi, l.harga_per_kg, l.satuan_durasi, l.durasi_pengerjaan, l.created_at, l.updated_at
 		` + baseQuery
 
 	// Search condition
@@ -169,7 +169,7 @@ func (r *servicePostgresRepository) FindAllWithPagination(limit, offset int, sea
 func (r *servicePostgresRepository) Update(service *entities.Service) error {
 	query := `
 		UPDATE paket_layanan
-		SET id_kategori = $1, nama_layanan = $2, deskripsi = $3, harga = $4, satuan = $5, estimasi_waktu = $6, updated_at = NOW()
+		SET id_kategori = $1, nama_layanan = $2, deskripsi = $3, harga_per_kg = $4, satuan_durasi = $5, durasi_pengerjaan = $6, updated_at = NOW()
 		WHERE id_layanan = $7`
 
 	_, err := r.db.Exec(query, service.CategoryID, service.Name, service.Description, service.Price, service.Unit, service.Estimation, service.ID)
@@ -184,7 +184,7 @@ func (r *servicePostgresRepository) Delete(id int) error {
 
 func (r *servicePostgresRepository) FindByCategoryID(categoryID int) ([]entities.Service, error) {
 	query := `
-		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga, satuan, estimasi_waktu, created_at, updated_at
+		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga_per_kg, satuan_durasi, durasi_pengerjaan, created_at, updated_at
 		FROM paket_layanan
 		WHERE id_kategori = $1
 		ORDER BY id_layanan`

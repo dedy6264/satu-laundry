@@ -9,9 +9,9 @@ type Service struct {
 	CategoryID  int       `json:"id_kategori"`
 	Name        string    `json:"nama_layanan"`
 	Description string    `json:"deskripsi"`
-	Price       float64   `json:"harga"`
-	Unit        string    `json:"satuan"`
-	Estimation  string    `json:"estimasi_waktu"`
+	Price       float64   `json:"harga_per_kg"`
+	Unit        string    `json:"satuan_durasi"`
+	Estimation  int       `json:"durasi_pengerjaan"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -25,21 +25,22 @@ type ServiceCategory struct {
 }
 
 type CreateServiceRequest struct {
+	BrandID     int     `json:"brand_id" validare:"required"`
 	CategoryID  int     `json:"id_kategori" validare:"required"`
 	Name        string  `json:"nama_layanan" validare:"required"`
 	Description string  `json:"deskripsi"`
-	Price       float64 `json:"harga" validare:"required"`
-	Unit        string  `json:"satuan" validare:"required"`
-	Estimation  string  `json:"estimasi_waktu"`
+	Price       float64 `json:"harga_per_kg" validare:"required"`
+	Unit        string  `json:"satuan_durasi" validare:"required"`
+	Estimation  int     `json:"durasi_pengerjaan"`
 }
 
 type UpdateServiceRequest struct {
 	CategoryID  int     `json:"id_kategori" validare:"required"`
 	Name        string  `json:"nama_layanan" validare:"required"`
 	Description string  `json:"deskripsi"`
-	Price       float64 `json:"harga" validare:"required"`
-	Unit        string  `json:"satuan" validare:"required"`
-	Estimation  string  `json:"estimasi_waktu"`
+	Price       float64 `json:"harga_per_kg" validare:"required"`
+	Unit        string  `json:"satuan_durasi" validare:"required"`
+	Estimation  int     `json:"durasi_pengerjaan"`
 }
 
 type CreateServiceCategoryRequest struct {
