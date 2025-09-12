@@ -17,11 +17,33 @@ func NewCustomerRepository(db *sql.DB) CustomerRepository {
 }
 
 func (r *customerPostgresRepository) Create(customer *entities.Customer) error {
-	query := `INSERT INTO pelanggan (id_outlet, nama, email, telepon, alamat, created_at, updated_at) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id_pelanggan`
 
+	// Start a transaction
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Insert into pelanggan table
+	customerQuery := `INSERT INTO pelanggan (nama_lengkap, email, nomor_hp, alamat, created_at, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_pelanggan`
+	fmt.Println("::", customerQuery)
 	now := time.Now()
-	err := r.db.QueryRow(query, customer.OutletID, customer.Name, customer.Email, customer.Phone, customer.Address, now, now).Scan(&customer.ID)
+	err = tx.QueryRow(customerQuery, customer.Name, customer.Email, customer.Phone, customer.Address, now, now).Scan(&customer.ID)
+	if err != nil {
+		return err
+	}
+
+	// Insert into pelanggan_outlet junction table
+	junctionQuery := `INSERT INTO pelanggan_outlet (id_pelanggan, id_outlet, created_at) VALUES ($1, $2, $3)`
+	_, err = tx.Exec(junctionQuery, customer.ID, customer.OutletID, now)
+	if err != nil {
+		return err
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -32,8 +54,10 @@ func (r *customerPostgresRepository) Create(customer *entities.Customer) error {
 }
 
 func (r *customerPostgresRepository) FindByID(id int) (*entities.Customer, error) {
-	query := `SELECT id_pelanggan, id_outlet, nama, email, telepon, alamat, created_at, updated_at 
-	          FROM pelanggan WHERE id_pelanggan = $1`
+	query := `SELECT p.id_pelanggan, COALESCE(po.id_outlet, 0) as id_outlet, p.nama_lengkap, p.email, p.nomor_hp, p.alamat, p.created_at, p.updated_at 
+	          FROM pelanggan p
+			  LEFT JOIN pelanggan_outlet po ON p.id_pelanggan = po.id_pelanggan
+			  WHERE p.id_pelanggan = $1`
 
 	row := r.db.QueryRow(query, id)
 
@@ -52,8 +76,10 @@ func (r *customerPostgresRepository) FindByID(id int) (*entities.Customer, error
 }
 
 func (r *customerPostgresRepository) FindByOutletID(outletID int) ([]entities.Customer, error) {
-	query := `SELECT id_pelanggan, id_outlet, nama, email, telepon, alamat, created_at, updated_at 
-	          FROM pelanggan WHERE id_outlet = $1`
+	query := `SELECT p.id_pelanggan, po.id_outlet, p.nama_lengkap, p.email, p.nomor_hp, p.alamat, p.created_at, p.updated_at 
+	          FROM pelanggan p
+			  JOIN pelanggan_outlet po ON p.id_pelanggan = po.id_pelanggan
+			  WHERE po.id_outlet = $1`
 
 	rows, err := r.db.Query(query, outletID)
 	if err != nil {
@@ -76,8 +102,9 @@ func (r *customerPostgresRepository) FindByOutletID(outletID int) ([]entities.Cu
 }
 
 func (r *customerPostgresRepository) FindAll() ([]entities.Customer, error) {
-	query := `SELECT id_pelanggan, id_outlet, nama, email, telepon, alamat, created_at, updated_at 
-	          FROM pelanggan`
+	query := `SELECT p.id_pelanggan, po.id_outlet, p.nama_lengkap, p.email, p.nomor_hp, p.alamat, p.created_at, p.updated_at 
+	          FROM pelanggan p
+			  JOIN pelanggan_outlet po ON p.id_pelanggan = po.id_pelanggan`
 
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -100,40 +127,41 @@ func (r *customerPostgresRepository) FindAll() ([]entities.Customer, error) {
 }
 
 func (r *customerPostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Customer, int, int, error) {
-	baseQuery := `SELECT id_pelanggan, id_outlet, nama, email, telepon, alamat, created_at, updated_at 
-	              FROM pelanggan`
-	countQuery := "SELECT COUNT(*) FROM pelanggan"
+	baseQuery := `SELECT p.id_pelanggan, po.id_outlet, p.nama_lengkap, p.email, p.nomor_hp, p.alamat, p.created_at, p.updated_at 
+	              FROM pelanggan p
+				  JOIN pelanggan_outlet po ON p.id_pelanggan = po.id_pelanggan`
+	countQuery := "SELECT COUNT(*) FROM pelanggan p JOIN pelanggan_outlet po ON p.id_pelanggan = po.id_pelanggan"
 
 	var args []interface{}
 	argIndex := 1
 
 	// Add search condition if provided
 	if search != "" {
-		baseQuery += " WHERE LOWER(nama) LIKE $1 OR LOWER(email) LIKE $1 OR telepon LIKE $1"
-		countQuery += " WHERE LOWER(nama) LIKE $1 OR LOWER(email) LIKE $1 OR telepon LIKE $1"
+		baseQuery += " WHERE LOWER(p.nama_lengkap) LIKE $1 OR LOWER(p.email) LIKE $1 OR p.nomor_hp LIKE $1"
+		countQuery += " WHERE LOWER(p.nama_lengkap) LIKE $1 OR LOWER(p.email) LIKE $1 OR p.nomor_hp LIKE $1"
 		args = append(args, "%"+search+"%")
 		argIndex++
 	}
 
 	// Add ordering
-	dbOrderBy := "id_pelanggan" // default
+	dbOrderBy := "p.id_pelanggan" // default
 	switch orderBy {
 	case "id_pelanggan":
-		dbOrderBy = "id_pelanggan"
+		dbOrderBy = "p.id_pelanggan"
 	case "id_outlet":
-		dbOrderBy = "id_outlet"
-	case "nama":
-		dbOrderBy = "nama"
+		dbOrderBy = "po.id_outlet"
+	case "nama_lengkap":
+		dbOrderBy = "p.nama_lengkap"
 	case "email":
-		dbOrderBy = "email"
-	case "telepon":
-		dbOrderBy = "telepon"
+		dbOrderBy = "p.email"
+	case "nomor_hp":
+		dbOrderBy = "p.nomor_hp"
 	case "alamat":
-		dbOrderBy = "alamat"
+		dbOrderBy = "p.alamat"
 	case "created_at":
-		dbOrderBy = "created_at"
+		dbOrderBy = "p.created_at"
 	case "updated_at":
-		dbOrderBy = "updated_at"
+		dbOrderBy = "p.updated_at"
 	}
 
 	// Validate order direction
@@ -187,11 +215,32 @@ func (r *customerPostgresRepository) FindAllWithPagination(limit, offset int, se
 }
 
 func (r *customerPostgresRepository) Update(customer *entities.Customer) error {
-	query := `UPDATE pelanggan SET id_outlet = $1, nama = $2, email = $3, telepon = $4, alamat = $5, updated_at = $6 
-	          WHERE id_pelanggan = $7`
+	// Start a transaction
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Update pelanggan table
+	customerQuery := `UPDATE pelanggan SET nama_lengkap = $1, email = $2, nomor_hp = $3, alamat = $4, updated_at = $5 
+	          WHERE id_pelanggan = $6`
 
 	now := time.Now()
-	_, err := r.db.Exec(query, customer.OutletID, customer.Name, customer.Email, customer.Phone, customer.Address, now, customer.ID)
+	_, err = tx.Exec(customerQuery, customer.Name, customer.Email, customer.Phone, customer.Address, now, customer.ID)
+	if err != nil {
+		return err
+	}
+
+	// Update pelanggan_outlet junction table
+	junctionQuery := `UPDATE pelanggan_outlet SET id_outlet = $1 WHERE id_pelanggan = $2`
+	_, err = tx.Exec(junctionQuery, customer.OutletID, customer.ID)
+	if err != nil {
+		return err
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -201,7 +250,32 @@ func (r *customerPostgresRepository) Update(customer *entities.Customer) error {
 }
 
 func (r *customerPostgresRepository) Delete(id int) error {
-	query := `DELETE FROM pelanggan WHERE id_pelanggan = $1`
-	_, err := r.db.Exec(query, id)
-	return err
+	// Start a transaction
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete from pelanggan_outlet junction table first (due to foreign key constraints)
+	junctionQuery := `DELETE FROM pelanggan_outlet WHERE id_pelanggan = $1`
+	_, err = tx.Exec(junctionQuery, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete from pelanggan table
+	customerQuery := `DELETE FROM pelanggan WHERE id_pelanggan = $1`
+	_, err = tx.Exec(customerQuery, id)
+	if err != nil {
+		return err
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
