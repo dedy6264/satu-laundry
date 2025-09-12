@@ -16,24 +16,17 @@ func NewEmployeeRepository(db *sql.DB) EmployeeRepository {
 }
 
 func (r *employeePostgresRepository) Create(employee *entities.Employee) error {
-	query := `INSERT INTO pegawai (id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status, password, created_at, updated_at) 
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW()) RETURNING id_pegawai`
+	query := `INSERT INTO pegawai (id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status,  created_at, updated_at) 
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW()) RETURNING id_pegawai`
 
-	// Handle NULL password
-	var password interface{}
-	if employee.Password != nil {
-		password = *employee.Password
-	}
-
-	return r.db.QueryRow(query, employee.OutletID, employee.NIK, employee.Name, employee.Email, employee.Phone, employee.Address, employee.BirthDate, employee.Gender, employee.Position, employee.Salary, employee.JoinDate, employee.Status, password).Scan(&employee.ID)
+	return r.db.QueryRow(query, employee.OutletID, employee.NIK, employee.Name, employee.Email, employee.Phone, employee.Address, employee.BirthDate, employee.Gender, employee.Position, employee.Salary, employee.JoinDate, employee.Status).Scan(&employee.ID)
 }
 
 func (r *employeePostgresRepository) FindByID(id int) (*entities.Employee, error) {
-	query := `SELECT id_pegawai, id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status, password, created_at, updated_at FROM pegawai WHERE id_pegawai = $1`
+	query := `SELECT id_pegawai, id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status,  created_at, updated_at FROM pegawai WHERE id_pegawai = $1`
 	row := r.db.QueryRow(query, id)
 
 	var employee entities.Employee
-	var password sql.NullString
 	err := row.Scan(
 		&employee.ID,
 		&employee.OutletID,
@@ -48,7 +41,6 @@ func (r *employeePostgresRepository) FindByID(id int) (*entities.Employee, error
 		&employee.Salary,
 		&employee.JoinDate,
 		&employee.Status,
-		&password,
 		&employee.CreatedAt,
 		&employee.UpdatedAt,
 	)
@@ -59,18 +51,11 @@ func (r *employeePostgresRepository) FindByID(id int) (*entities.Employee, error
 		return nil, err
 	}
 
-	// Handle NULL password
-	if password.Valid {
-		employee.Password = &password.String
-	} else {
-		employee.Password = nil
-	}
-
 	return &employee, nil
 }
 
 func (r *employeePostgresRepository) FindAll() ([]entities.Employee, error) {
-	query := `SELECT id_pegawai, id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status, password, created_at, updated_at FROM pegawai`
+	query := `SELECT id_pegawai, id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status,  created_at, updated_at FROM pegawai`
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -80,7 +65,6 @@ func (r *employeePostgresRepository) FindAll() ([]entities.Employee, error) {
 	var employees []entities.Employee
 	for rows.Next() {
 		var employee entities.Employee
-		var password sql.NullString
 		err := rows.Scan(
 			&employee.ID,
 			&employee.OutletID,
@@ -95,21 +79,12 @@ func (r *employeePostgresRepository) FindAll() ([]entities.Employee, error) {
 			&employee.Salary,
 			&employee.JoinDate,
 			&employee.Status,
-			&password,
 			&employee.CreatedAt,
 			&employee.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
-
-		// Handle NULL password
-		if password.Valid {
-			employee.Password = &password.String
-		} else {
-			employee.Password = nil
-		}
-
 		employees = append(employees, employee)
 	}
 
@@ -248,15 +223,8 @@ func (r *employeePostgresRepository) FindAllWithPagination(limit, offset int, se
 }
 
 func (r *employeePostgresRepository) Update(employee *entities.Employee) error {
-	query := `UPDATE pegawai SET id_outlet = $1, nik = $2, nama_lengkap = $3, email = $4, telepon = $5, alamat = $6, tanggal_lahir = $7, jenis_kelamin = $8, posisi = $9, gaji = $10, tanggal_masuk = $11, status = $12, password = $13, updated_at = NOW() WHERE id_pegawai = $14`
-
-	// Handle NULL password
-	var password interface{}
-	if employee.Password != nil {
-		password = *employee.Password
-	}
-
-	_, err := r.db.Exec(query, employee.OutletID, employee.NIK, employee.Name, employee.Email, employee.Phone, employee.Address, employee.BirthDate, employee.Gender, employee.Position, employee.Salary, employee.JoinDate, employee.Status, password, employee.ID)
+	query := `UPDATE pegawai SET id_outlet = $1, nik = $2, nama_lengkap = $3, email = $4, telepon = $5, alamat = $6, tanggal_lahir = $7, jenis_kelamin = $8, posisi = $9, gaji = $10, tanggal_masuk = $11, status = $12,  updated_at = NOW() WHERE id_pegawai = $13`
+	_, err := r.db.Exec(query, employee.OutletID, employee.NIK, employee.Name, employee.Email, employee.Phone, employee.Address, employee.BirthDate, employee.Gender, employee.Position, employee.Salary, employee.JoinDate, employee.Status, employee.ID)
 	return err
 }
 
@@ -264,48 +232,4 @@ func (r *employeePostgresRepository) Delete(id int) error {
 	query := `DELETE FROM pegawai WHERE id_pegawai = $1`
 	_, err := r.db.Exec(query, id)
 	return err
-}
-
-// FindByIdentifier finds an employee by email, NIK, or phone number
-func (r *employeePostgresRepository) FindByIdentifier(identifier string) (*entities.Employee, error) {
-	query := `SELECT id_pegawai, id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status, password, created_at, updated_at 
-	          FROM pegawai 
-	          WHERE email = $1 OR nik = $1 OR telepon = $1`
-	row := r.db.QueryRow(query, identifier)
-
-	var employee entities.Employee
-	var password sql.NullString
-	err := row.Scan(
-		&employee.ID,
-		&employee.OutletID,
-		&employee.NIK,
-		&employee.Name,
-		&employee.Email,
-		&employee.Phone,
-		&employee.Address,
-		&employee.BirthDate,
-		&employee.Gender,
-		&employee.Position,
-		&employee.Salary,
-		&employee.JoinDate,
-		&employee.Status,
-		&password,
-		&employee.CreatedAt,
-		&employee.UpdatedAt,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	// Handle NULL password
-	if password.Valid {
-		employee.Password = &password.String
-	} else {
-		employee.Password = nil
-	}
-
-	return &employee, nil
 }

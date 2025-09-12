@@ -1,0 +1,219 @@
+package repositories
+
+import (
+	"database/sql"
+	"fmt"
+	"laundry-backend/internal/entities"
+)
+
+type servicePostgresRepository struct {
+	db *sql.DB
+}
+
+func NewServiceRepository(db *sql.DB) ServiceRepository {
+	return &servicePostgresRepository{
+		db: db,
+	}
+}
+
+func (r *servicePostgresRepository) Create(service *entities.Service) error {
+	query := `
+		INSERT INTO paket_layanan (id_kategori, nama_layanan, deskripsi, harga, satuan, estimasi_waktu, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+		RETURNING id_layanan`
+
+	err := r.db.QueryRow(query, service.CategoryID, service.Name, service.Description, service.Price, service.Unit, service.Estimation).
+		Scan(&service.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *servicePostgresRepository) FindByID(id int) (*entities.Service, error) {
+	query := `
+		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga, satuan, estimasi_waktu, created_at, updated_at
+		FROM paket_layanan
+		WHERE id_layanan = $1`
+
+	var service entities.Service
+	err := r.db.QueryRow(query, id).Scan(
+		&service.ID,
+		&service.CategoryID,
+		&service.Name,
+		&service.Description,
+		&service.Price,
+		&service.Unit,
+		&service.Estimation,
+		&service.CreatedAt,
+		&service.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &service, nil
+}
+
+func (r *servicePostgresRepository) FindAll() ([]entities.Service, error) {
+	query := `
+		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga, satuan, estimasi_waktu, created_at, updated_at
+		FROM paket_layanan
+		ORDER BY id_layanan`
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var services []entities.Service
+	for rows.Next() {
+		var service entities.Service
+		err := rows.Scan(
+			&service.ID,
+			&service.CategoryID,
+			&service.Name,
+			&service.Description,
+			&service.Price,
+			&service.Unit,
+			&service.Estimation,
+			&service.CreatedAt,
+			&service.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		services = append(services, service)
+	}
+
+	return services, nil
+}
+
+func (r *servicePostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Service, int, error) {
+	// Base query
+	baseQuery := `
+		FROM paket_layanan l`
+
+	// Count query
+	countQuery := "SELECT COUNT(*) " + baseQuery
+
+	// Data query
+	dataQuery := `
+		SELECT l.id_layanan, l.id_kategori, l.nama_layanan, l.deskripsi, l.harga, l.satuan, l.estimasi_waktu, l.created_at, l.updated_at
+		` + baseQuery
+
+	// Search condition
+	var args []interface{}
+	if search != "" {
+		countQuery += " WHERE l.nama_layanan ILIKE $1"
+		dataQuery += " WHERE l.nama_layanan ILIKE $1"
+		args = append(args, "%"+search+"%")
+	}
+
+	// Get total count
+	var totalCount int
+	countArgs := make([]interface{}, len(args))
+	copy(countArgs, args)
+	err := r.db.QueryRow(countQuery, countArgs...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Add ordering
+	if orderBy == "" {
+		orderBy = "l.id_layanan"
+	}
+	if orderDir == "" {
+		orderDir = "ASC"
+	}
+	dataQuery += fmt.Sprintf(" ORDER BY %s %s LIMIT $%d OFFSET $%d", orderBy, orderDir, len(args)+1, len(args)+2)
+
+	// Add limit and offset
+	args = append(args, limit, offset)
+
+	// Execute data query
+	rows, err := r.db.Query(dataQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var services []entities.Service
+	for rows.Next() {
+		var service entities.Service
+		err := rows.Scan(
+			&service.ID,
+			&service.CategoryID,
+			&service.Name,
+			&service.Description,
+			&service.Price,
+			&service.Unit,
+			&service.Estimation,
+			&service.CreatedAt,
+			&service.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		services = append(services, service)
+	}
+
+	return services, totalCount, nil
+}
+
+func (r *servicePostgresRepository) Update(service *entities.Service) error {
+	query := `
+		UPDATE paket_layanan
+		SET id_kategori = $1, nama_layanan = $2, deskripsi = $3, harga = $4, satuan = $5, estimasi_waktu = $6, updated_at = NOW()
+		WHERE id_layanan = $7`
+
+	_, err := r.db.Exec(query, service.CategoryID, service.Name, service.Description, service.Price, service.Unit, service.Estimation, service.ID)
+	return err
+}
+
+func (r *servicePostgresRepository) Delete(id int) error {
+	query := `DELETE FROM paket_layanan WHERE id_layanan = $1`
+	_, err := r.db.Exec(query, id)
+	return err
+}
+
+func (r *servicePostgresRepository) FindByCategoryID(categoryID int) ([]entities.Service, error) {
+	query := `
+		SELECT id_layanan, id_kategori, nama_layanan, deskripsi, harga, satuan, estimasi_waktu, created_at, updated_at
+		FROM paket_layanan
+		WHERE id_kategori = $1
+		ORDER BY id_layanan`
+
+	rows, err := r.db.Query(query, categoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var services []entities.Service
+	for rows.Next() {
+		var service entities.Service
+		err := rows.Scan(
+			&service.ID,
+			&service.CategoryID,
+			&service.Name,
+			&service.Description,
+			&service.Price,
+			&service.Unit,
+			&service.Estimation,
+			&service.CreatedAt,
+			&service.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		services = append(services, service)
+	}
+
+	return services, nil
+}

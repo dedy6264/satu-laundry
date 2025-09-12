@@ -38,7 +38,16 @@ type LogConfig struct {
 }
 
 func LoadConfig() (*Config, error) {
-	viper.SetConfigFile("../.env")
+	// viper.SetConfigFile("./.env")
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+	viper.AddConfigPath("/app") // explicit
+	viper.AddConfigPath(".")    // current dir
+	viper.AddConfigPath("..")   // parent dir
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Error reading config file: %v", err)
+	}
 	// viper.AutomaticEnv() // Removed to prevent environment variables from overriding .env
 
 	if err := viper.ReadInConfig(); err != nil {

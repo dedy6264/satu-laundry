@@ -106,7 +106,6 @@ type Employee struct {
 	Salary    float64   `json:"gaji"`
 	JoinDate  string    `json:"tanggal_masuk"`
 	Status    string    `json:"status"`
-	Password  *string   `json:"password,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

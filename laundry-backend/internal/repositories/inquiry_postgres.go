@@ -2,24 +2,25 @@ package repositories
 
 import (
 	"database/sql"
-	"time"
+	"fmt"
 	"laundry-backend/internal/entities"
+	"time"
 )
 
 type inquiryPostgresRepository struct {
-	db *sql.DB
+	db           *sql.DB
 	employeeRepo EmployeeRepository
 }
 
 func NewInquiryRepository(db *sql.DB, employeeRepo EmployeeRepository) InquiryRepository {
 	return &inquiryPostgresRepository{
-		db: db,
+		db:           db,
 		employeeRepo: employeeRepo,
 	}
 }
 
 func (r *inquiryPostgresRepository) ValidateServicePackage(id int) (bool, error) {
-	query := `SELECT COUNT(*) FROM layanan WHERE id_layanan = $1`
+	query := `SELECT COUNT(*) FROM paket_layanan WHERE id_layanan = $1`
 	row := r.db.QueryRow(query, id)
 
 	var count int
@@ -122,12 +123,15 @@ func (r *inquiryPostgresRepository) InsertTransactionDetail(detail *entities.Tra
 }
 
 func (r *inquiryPostgresRepository) GetServicePackagePrice(id int) (float64, error) {
-	query := `SELECT harga FROM layanan WHERE id_layanan = $1`
+	query := `SELECT harga FROM paket_layanan WHERE id = $1`
 	row := r.db.QueryRow(query, id)
 
 	var price float64
 	err := row.Scan(&price)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, fmt.Errorf("service package with id %d not found", id)
+		}
 		return 0, err
 	}
 

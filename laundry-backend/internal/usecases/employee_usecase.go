@@ -1,10 +1,8 @@
 package usecases
 
 import (
-	"errors"
 	"laundry-backend/internal/entities"
 	"laundry-backend/internal/repositories"
-	"laundry-backend/internal/utils"
 )
 
 type employeeUsecase struct {
@@ -19,14 +17,6 @@ func NewEmployeeUsecase(employeeRepo repositories.EmployeeRepository) EmployeeUs
 
 func (u *employeeUsecase) CreateEmployee(request entities.RegisterEmployeeRequest) error {
 	// Hash the password before storing
-	var hashedPassword *string
-	if request.Password != "" {
-		hash, err := utils.HashPassword(request.Password)
-		if err != nil {
-			return err
-		}
-		hashedPassword = &hash
-	}
 
 	employee := &entities.Employee{
 		OutletID:  request.OutletID,
@@ -41,7 +31,6 @@ func (u *employeeUsecase) CreateEmployee(request entities.RegisterEmployeeReques
 		Salary:    request.Salary,
 		JoinDate:  request.JoinDate,
 		Status:    request.Status,
-		Password:  hashedPassword,
 	}
 
 	return u.employeeRepo.Create(employee)
@@ -100,15 +89,6 @@ func (u *employeeUsecase) UpdateEmployee(id int, request entities.RegisterEmploy
 		return nil // Employee not found
 	}
 
-	// If password is provided, hash it
-	if request.Password != "" {
-		hashedPassword, err := utils.HashPassword(request.Password)
-		if err != nil {
-			return err
-		}
-		employee.Password = &hashedPassword
-	}
-
 	employee.OutletID = request.OutletID
 	employee.NIK = request.NIK
 	employee.Name = request.Name
@@ -127,42 +107,4 @@ func (u *employeeUsecase) UpdateEmployee(id int, request entities.RegisterEmploy
 
 func (u *employeeUsecase) DeleteEmployee(id int) error {
 	return u.employeeRepo.Delete(id)
-}
-
-// Login authenticates an employee and returns a JWT token
-func (u *employeeUsecase) Login(request entities.EmployeeLoginRequest) (*entities.EmployeeLoginResponse, error) {
-	// Find employee by identifier (email, NIK, or phone)
-	employee, err := u.employeeRepo.FindByIdentifier(request.Email)
-	if err != nil {
-		return nil, err
-	}
-
-	if employee == nil {
-		return nil, errors.New("employee not found")
-	}
-
-	// Check password - handle NULL password
-	if employee.Password == nil {
-		return nil, errors.New("password not set for this employee")
-	}
-
-	if !utils.CheckPasswordHash(request.Password, *employee.Password) {
-		return nil, errors.New("invalid password")
-	}
-
-	// Generate JWT token
-	token, err := utils.GenerateJWT(employee.ID, employee.Email, "employee")
-	if err != nil {
-		return nil, err
-	}
-
-	// Return response without password
-	employee.Password = nil // Remove password from response
-
-	response := &entities.EmployeeLoginResponse{
-		Token:    token,
-		Employee: *employee,
-	}
-
-	return response, nil
 }

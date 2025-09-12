@@ -1,1 +1,1 @@
-1. buatkan api inquiry dengan pengamanan jwt, data akan diinsert pada tabel transaksi, validasi utama request meliputi paket layanan, pegawai, pelanggan
+1. cek ulang api paket layanan dan hapus api kategori layanan berikut repo, service dan struct, perbaiki query paket layanan pada repo supaya bersih dari field yang berhubungan dengan kategori layanan

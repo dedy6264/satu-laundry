@@ -50,7 +50,6 @@ type InquiryRepository interface {
 type EmployeeRepository interface {
 	Create(employee *entities.Employee) error
 	FindByID(id int) (*entities.Employee, error)
-	FindByIdentifier(identifier string) (*entities.Employee, error)
 	FindAll() ([]entities.Employee, error)
 	FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Employee, int, int, error)
 	Update(employee *entities.Employee) error
@@ -64,5 +63,24 @@ type CustomerRepository interface {
 	FindAll() ([]entities.Customer, error)
 	FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Customer, int, int, error)
 	Update(customer *entities.Customer) error
+	Delete(id int) error
+}
+
+type ServiceRepository interface {
+	Create(service *entities.Service) error
+	FindByID(id int) (*entities.Service, error)
+	FindAll() ([]entities.Service, error)
+	FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Service, int, error)
+	Update(service *entities.Service) error
+	Delete(id int) error
+	FindByCategoryID(categoryID int) ([]entities.Service, error)
+}
+
+type ServiceCategoryRepository interface {
+	Create(category *entities.ServiceCategory) error
+	FindByID(id int) (*entities.ServiceCategory, error)
+	FindAll() ([]entities.ServiceCategory, error)
+	FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.ServiceCategory, int, int, error)
+	Update(category *entities.ServiceCategory) error
 	Delete(id int) error
 }

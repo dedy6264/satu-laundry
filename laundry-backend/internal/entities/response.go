@@ -12,8 +12,4 @@ type (
 		ResponseMessage string      `json:"responseMessage"`
 		Result          interface{} `json:"result"`
 	}
-	EmployeeLoginResponse struct {
-		Token    string   `json:"token"`
-		Employee Employee `json:"employee"`
-	}
 )

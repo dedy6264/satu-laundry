@@ -48,7 +48,6 @@ type EmployeeUsecase interface {
 	GetAllEmployeesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
 	UpdateEmployee(id int, request entities.RegisterEmployeeRequest) error
 	DeleteEmployee(id int) error
-	Login(request entities.EmployeeLoginRequest) (*entities.EmployeeLoginResponse, error)
 }
 
 type CustomerUsecase interface {
@@ -59,4 +58,23 @@ type CustomerUsecase interface {
 	GetAllCustomersDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
 	UpdateCustomer(id int, request entities.RegisterCustomerRequest) error
 	DeleteCustomer(id int) error
+}
+
+type ServiceUsecase interface {
+	CreateService(request entities.CreateServiceRequest) error
+	GetServiceByID(id int) (*entities.Service, error)
+	GetAllServices() ([]entities.Service, error)
+	GetAllServicesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	UpdateService(id int, request entities.UpdateServiceRequest) error
+	DeleteService(id int) error
+	GetServicesByCategoryID(categoryID int) ([]entities.Service, error)
+}
+
+type ServiceCategoryUsecase interface {
+	CreateServiceCategory(request entities.CreateServiceCategoryRequest) error
+	GetServiceCategoryByID(id int) (*entities.ServiceCategory, error)
+	GetAllServiceCategories() ([]entities.ServiceCategory, error)
+	GetAllServiceCategoriesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	UpdateServiceCategory(id int, request entities.UpdateServiceCategoryRequest) error
+	DeleteServiceCategory(id int) error
 }

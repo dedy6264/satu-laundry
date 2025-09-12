@@ -73,12 +73,6 @@ type RegisterEmployeeRequest struct {
 	Salary    float64 `json:"gaji"`
 	JoinDate  string  `json:"tanggal_masuk"`
 	Status    string  `json:"status"`
-	Password  string  `json:"password"`
-}
-
-type EmployeeLoginRequest struct {
-	Email    string `json:"email"` // Can be email, NIK, or phone
-	Password string `json:"password"`
 }
 
 type RegisterCustomerRequest struct {

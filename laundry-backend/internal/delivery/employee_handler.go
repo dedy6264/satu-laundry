@@ -1,10 +1,10 @@
 package delivery
 
 import (
-	"net/http"
-	"strconv"
 	"laundry-backend/internal/entities"
 	"laundry-backend/internal/usecases"
+	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
@@ -115,23 +115,4 @@ func (h *EmployeeHandler) DeleteEmployee(c echo.Context) error {
 	}
 
 	return MessageResponse(c, http.StatusOK, "Employee deleted successfully")
-}
-
-func (h *EmployeeHandler) Login(c echo.Context) error {
-	var request entities.EmployeeLoginRequest
-	if err := c.Bind(&request); err != nil {
-		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
-	}
-
-	// Validate required fields
-	if request.Email == "" || request.Password == "" {
-		return ErrorResponse(c, http.StatusBadRequest, "Email and password are required", "")
-	}
-
-	response, err := h.employeeUsecase.Login(request)
-	if err != nil {
-		return ErrorResponse(c, http.StatusUnauthorized, "Login failed", err.Error())
-	}
-
-	return SuccessResponse(c, http.StatusOK, "Login successful", response)
 }
