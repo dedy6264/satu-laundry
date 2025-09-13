@@ -137,3 +137,69 @@ func (r *inquiryPostgresRepository) GetServicePackagePrice(id int) (float64, err
 
 	return price, nil
 }
+
+// Transaction methods
+func (r *inquiryPostgresRepository) BeginTransaction() (*sql.Tx, error) {
+	return r.db.Begin()
+}
+
+func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) error {
+	query := `INSERT INTO transaksi (
+		id_pelanggan, id_outlet, nomor_invoice, tanggal_masuk, status_transaksi, catatan
+	) VALUES (
+		$1, $2, $3, $4, $5, $6
+	) RETURNING id_transaksi`
+
+	var id int
+	err := tx.QueryRow(
+		query,
+		transaction.CustomerID,
+		transaction.OutletID,
+		transaction.InvoiceNumber,
+		transaction.EntryDate,
+		transaction.Status,
+		transaction.Note,
+	).Scan(&id)
+
+	if err != nil {
+		return err
+	}
+
+	transaction.ID = id
+	// Set default values for timestamps
+	now := time.Now()
+	transaction.CreatedAt = now
+	transaction.UpdatedAt = now
+
+	return nil
+}
+
+func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, detail *entities.TransactionDetail) error {
+	query := `INSERT INTO detail_transaksi (
+		id_transaksi, id_layanan, kuantitas, harga_satuan, subtotal
+	) VALUES (
+		$1, $2, $3, $4, $5
+	) RETURNING id_detail`
+
+	var id int
+	err := tx.QueryRow(
+		query,
+		detail.TransactionID,
+		detail.ServiceID,
+		detail.Quantity,
+		detail.Price,
+		detail.Subtotal,
+	).Scan(&id)
+
+	if err != nil {
+		return err
+	}
+
+	detail.ID = id
+	// Set default values for timestamps
+	now := time.Now()
+	detail.CreatedAt = now
+	detail.UpdatedAt = now
+
+	return nil
+}

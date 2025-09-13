@@ -57,6 +57,12 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	// Calculate subtotal
 	subtotal := price * request.Quantity
 
+	// Begin database transaction
+	tx, err := u.inquiryRepo.BeginTransaction()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
 	// Create transaction entity
 	// Use employee's outlet ID instead of request.OutletID
 	transaction := &entities.Transaction{
@@ -69,10 +75,11 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 		Note:          request.Note,
 	}
 
-	// Insert transaction
-	err = u.inquiryRepo.InsertTransaction(transaction)
+	// Insert transaction with transaction
+	err = u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
 	if err != nil {
-		return err
+		tx.Rollback()
+		return fmt.Errorf("failed to insert transaction: %w", err)
 	}
 
 	// Create transaction detail
@@ -84,10 +91,17 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 		Subtotal:      subtotal,
 	}
 
-	// Insert transaction detail
-	err = u.inquiryRepo.InsertTransactionDetail(detail)
+	// Insert transaction detail with transaction
+	err = u.inquiryRepo.InsertTransactionDetailWithTx(tx, detail)
 	if err != nil {
-		return err
+		tx.Rollback()
+		return fmt.Errorf("failed to insert transaction detail: %w", err)
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
