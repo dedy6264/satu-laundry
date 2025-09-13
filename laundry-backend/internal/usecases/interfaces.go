@@ -78,3 +78,15 @@ type ServiceCategoryUsecase interface {
 	UpdateServiceCategory(id int, request entities.UpdateServiceCategoryRequest) error
 	DeleteServiceCategory(id int) error
 }
+
+type EmployeeAccessUsecase interface {
+	CreateEmployeeAccess(request entities.CreateEmployeeAccessRequest) error
+	GetEmployeeAccessByID(id int) (*entities.EmployeeAccess, error)
+	GetAllEmployeeAccess() ([]entities.EmployeeAccess, error)
+	GetAllEmployeeAccessDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	UpdateEmployeeAccess(id int, request entities.UpdateEmployeeAccessRequest) error
+	UpdateEmployeePassword(id int, request entities.UpdateEmployeePasswordRequest) error
+	DeleteEmployeeAccess(id int) error
+	GetEmployeeAccessByOutletID(outletID int) ([]entities.EmployeeAccess, error)
+	AuthenticateEmployee(request entities.EmployeeLoginRequest) (*entities.EmployeeLoginResponse, error)
+}

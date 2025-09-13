@@ -45,6 +45,7 @@ func main() {
 	customerRepo := repositories.NewCustomerRepository(db)
 	serviceRepo := repositories.NewServiceRepository(db)
 	serviceCategoryRepo := repositories.NewServiceCategoryRepository(db)
+	employeeAccessRepo := repositories.NewEmployeeAccessRepository(db)
 
 	// Initialize usecases
 	authUsecase := usecases.NewAuthUsecase(userRepo)
@@ -56,6 +57,7 @@ func main() {
 	customerUsecase := usecases.NewCustomerUsecase(customerRepo)
 	serviceUsecase := usecases.NewServiceUsecase(serviceRepo)
 	serviceCategoryUsecase := usecases.NewServiceCategoryUsecase(serviceCategoryRepo)
+	employeeAccessUsecase := usecases.NewEmployeeAccessUsecase(employeeAccessRepo, "laundry-secret-key", 24*60*60) // 24 hours
 
 	// Initialize handlers
 	authHandler := delivery.NewAuthHandler(authUsecase)
@@ -67,6 +69,7 @@ func main() {
 	customerHandler := delivery.NewCustomerHandler(customerUsecase)
 	serviceHandler := delivery.NewServiceHandler(serviceUsecase)
 	serviceCategoryHandler := delivery.NewServiceCategoryHandler(serviceCategoryUsecase)
+	employeeAccessHandler := delivery.NewEmployeeAccessHandler(employeeAccessUsecase, "laundry-secret-key")
 
 	// Initialize Echo instance
 	e := echo.New()
@@ -88,6 +91,7 @@ func main() {
 	// Routes
 	// Auth routes
 	e.POST("/api/v1/login", authHandler.Login)
+	e.POST("/api/v1/employee/login", employeeAccessHandler.EmployeeLogin)
 
 	// Protected routes
 	api := e.Group("/api/v1")
@@ -149,6 +153,15 @@ func main() {
 		api.GET("/service-categories", serviceCategoryHandler.GetAllServiceCategories)
 		api.PUT("/service-categories/:id", serviceCategoryHandler.UpdateServiceCategory)
 		api.DELETE("/service-categories/:id", serviceCategoryHandler.DeleteServiceCategory)
+
+		// Employee Access routes
+		api.POST("/employee-access", employeeAccessHandler.CreateEmployeeAccess)
+		api.GET("/employee-access/:id", employeeAccessHandler.GetEmployeeAccessByID)
+		api.GET("/employee-access", employeeAccessHandler.GetAllEmployeeAccessDataTables)
+		api.PUT("/employee-access/:id", employeeAccessHandler.UpdateEmployeeAccess)
+		api.PUT("/employee-access/:id/password", employeeAccessHandler.UpdateEmployeePassword)
+		api.DELETE("/employee-access/:id", employeeAccessHandler.DeleteEmployeeAccess)
+		api.GET("/employee-access/outlet/:outlet_id", employeeAccessHandler.GetEmployeeAccessByOutletID)
 	}
 	// Start server
 	e.Logger.Fatal(e.Start(config.Server.Address))

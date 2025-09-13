@@ -84,3 +84,17 @@ type ServiceCategoryRepository interface {
 	Update(category *entities.ServiceCategory) error
 	Delete(id int) error
 }
+
+type EmployeeAccessRepository interface {
+	Create(access *entities.EmployeeAccess) error
+	FindByID(id int) (*entities.EmployeeAccess, error)
+	FindByUsername(username string) (*entities.EmployeeAccess, error)
+	FindAll() ([]entities.EmployeeAccess, error)
+	FindAllWithPagination(limit, offset int) ([]entities.EmployeeAccess, int, error)
+	Update(access *entities.EmployeeAccess) error
+	UpdatePassword(id int, password string) error
+	UpdateLastLogin(id int) error
+	Delete(id int) error
+	FindByOutletID(outletID int) ([]entities.EmployeeAccess, error)
+	AuthenticateEmployee(username, password string) (*entities.EmployeeAccess, error)
+}
