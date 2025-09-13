@@ -32,20 +32,20 @@ func (r *inquiryPostgresRepository) ValidateServicePackage(id int) (bool, error)
 	return count > 0, nil
 }
 
-func (r *inquiryPostgresRepository) ValidateEmployee(id int) (bool, error) {
+func (r *inquiryPostgresRepository) ValidateEmployee(id int) (*entities.Employee, error) {
 	// Use the employee repository to find the employee by ID
 	employee, err := r.employeeRepo.FindByID(id)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	// If employee is not found, return false
+	// If employee is not found, return nil
 	if employee == nil {
-		return false, nil
+		return nil, nil
 	}
 
-	// Employee exists, return true
-	return true, nil
+	// Employee exists, return the employee data
+	return employee, nil
 }
 
 func (r *inquiryPostgresRepository) ValidateCustomer(id int) (bool, error) {
@@ -94,7 +94,7 @@ func (r *inquiryPostgresRepository) InsertTransaction(transaction *entities.Tran
 
 func (r *inquiryPostgresRepository) InsertTransactionDetail(detail *entities.TransactionDetail) error {
 	query := `INSERT INTO detail_transaksi (
-		id_transaksi, id_layanan, jumlah, harga_satuan, subtotal
+		id_transaksi, id_layanan, kuantitas, harga_satuan, subtotal
 	) VALUES (
 		$1, $2, $3, $4, $5
 	) RETURNING id_detail`

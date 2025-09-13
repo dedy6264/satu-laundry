@@ -40,7 +40,7 @@ type OutletRepository interface {
 
 type InquiryRepository interface {
 	ValidateServicePackage(id int) (bool, error)
-	ValidateEmployee(id int) (bool, error)
+	ValidateEmployee(id int) (*entities.Employee, error)
 	ValidateCustomer(id int) (bool, error)
 	InsertTransaction(transaction *entities.Transaction) error
 	InsertTransactionDetail(detail *entities.TransactionDetail) error

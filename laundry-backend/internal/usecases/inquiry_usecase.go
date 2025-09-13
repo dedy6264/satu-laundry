@@ -30,11 +30,12 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	}
 
 	// Validate employee and get employee data
-	valid, err = u.inquiryRepo.ValidateEmployee(request.EmployeeID)
+
+	employee, err := u.inquiryRepo.ValidateEmployee(request.EmployeeID)
 	if err != nil {
 		return err
 	}
-	if !valid {
+	if employee == nil {
 		return errors.New("invalid employee")
 	}
 
@@ -57,9 +58,10 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	subtotal := price * request.Quantity
 
 	// Create transaction entity
+	// Use employee's outlet ID instead of request.OutletID
 	transaction := &entities.Transaction{
 		CustomerID:    request.CustomerID,
-		OutletID:      request.OutletID,
+		OutletID:      employee.OutletID,
 		InvoiceNumber: generateInvoiceNumber(),
 		EntryDate:     time.Now(),
 		Status:        "diterima", // Default status
