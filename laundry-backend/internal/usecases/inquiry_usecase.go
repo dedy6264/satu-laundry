@@ -62,7 +62,7 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 		OutletID:      request.OutletID,
 		InvoiceNumber: generateInvoiceNumber(),
 		EntryDate:     time.Now(),
-		Status:        "baru", // Default status
+		Status:        "diterima", // Default status
 		TotalCost:     subtotal,
 		Note:          request.Note,
 	}

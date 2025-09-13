@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"laundry-backend/internal/entities"
 	"laundry-backend/internal/repositories"
+	"laundry-backend/internal/utils"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type employeeAccessUsecase struct {
@@ -127,16 +126,16 @@ func (u *employeeAccessUsecase) AuthenticateEmployee(request entities.EmployeeLo
 	if err != nil || employeeAccess == nil {
 		return nil, err // Authentication failed
 	}
-
 	// Generate JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id":       employeeAccess.ID,
-		"username": employeeAccess.Username,
-		"role":     employeeAccess.Role,
-		"exp":      float64(time.Now().Add(u.tokenExpiry).Unix()),
-	})
+	tokenString, err := utils.GenerateJWT(employeeAccess.ID, employeeAccess.EmployeeID, employeeAccess.Username, employeeAccess.Role)
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	// 	"id":       employeeAccess.ID,
+	// 	"username": employeeAccess.Username,
+	// 	"role":     employeeAccess.Role,
+	// 	"exp":      float64(time.Now().Add(u.tokenExpiry).Unix()),
+	// })
 
-	tokenString, err := token.SignedString([]byte(u.jwtSecret))
+	// tokenString, err := token.SignedString([]byte(u.jwtSecret))
 	if err != nil {
 		return nil, err
 	}

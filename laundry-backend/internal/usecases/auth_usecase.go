@@ -42,7 +42,7 @@ func (u *authUsecase) Login(request entities.LoginRequest) (*entities.LoginRespo
 	}
 
 	// Generate JWT token
-	token, err := utils.GenerateJWT(user.ID, user.Email, user.Role)
+	token, err := utils.GenerateJWT(user.ID, 0, user.Email, user.Role)
 	if err != nil {
 		return nil, err
 	}

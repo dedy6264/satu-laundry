@@ -63,7 +63,7 @@ func (r *inquiryPostgresRepository) ValidateCustomer(id int) (bool, error) {
 
 func (r *inquiryPostgresRepository) InsertTransaction(transaction *entities.Transaction) error {
 	query := `INSERT INTO transaksi (
-		id_pelanggan, id_outlet, nomor_invoice, tanggal_masuk, status, catatan
+		id_pelanggan, id_outlet, nomor_invoice, tanggal_masuk, status_transaksi, catatan
 	) VALUES (
 		$1, $2, $3, $4, $5, $6
 	) RETURNING id_transaksi`
@@ -94,7 +94,7 @@ func (r *inquiryPostgresRepository) InsertTransaction(transaction *entities.Tran
 
 func (r *inquiryPostgresRepository) InsertTransactionDetail(detail *entities.TransactionDetail) error {
 	query := `INSERT INTO detail_transaksi (
-		id_transaksi, id_layanan, jumlah, harga, subtotal
+		id_transaksi, id_layanan, jumlah, harga_satuan, subtotal
 	) VALUES (
 		$1, $2, $3, $4, $5
 	) RETURNING id_detail`
@@ -123,7 +123,7 @@ func (r *inquiryPostgresRepository) InsertTransactionDetail(detail *entities.Tra
 }
 
 func (r *inquiryPostgresRepository) GetServicePackagePrice(id int) (float64, error) {
-	query := `SELECT harga FROM paket_layanan WHERE id = $1`
+	query := `SELECT harga_per_kg FROM paket_layanan WHERE id_layanan = $1`
 	row := r.db.QueryRow(query, id)
 
 	var price float64

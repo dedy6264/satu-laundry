@@ -8,6 +8,17 @@
 -- Extension untuk UUID (jika diperlukan)
 -- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Tabel Users
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Tabel Brand
 CREATE TABLE brand (
     id_brand SERIAL PRIMARY KEY,
@@ -98,11 +109,22 @@ CREATE TABLE pegawai (
     FOREIGN KEY (id_outlet) REFERENCES outlet(id_outlet)
 );
 
+-- Tabel Kategori Layanan
+CREATE TABLE IF NOT EXISTS kategori_layanan (
+    id_kategori SERIAL PRIMARY KEY,
+    nama_kategori VARCHAR(100) NOT NULL,
+    deskripsi TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 -- Tabel Paket Layanan
 CREATE TABLE paket_layanan (
-    id_paket SERIAL PRIMARY KEY,
+    id_layanan SERIAL PRIMARY KEY,
+    nama_layanan VARCHAR(100) NOT NULL,
+    id_kategori INTEGER NOT NULL,
     id_brand INTEGER NOT NULL,
-    nama_paket VARCHAR(100) NOT NULL,
     deskripsi TEXT,
     harga_per_kg DECIMAL(10, 2),
     durasi_pengerjaan INTEGER,
@@ -110,7 +132,9 @@ CREATE TABLE paket_layanan (
     kategori VARCHAR(20) DEFAULT 'kiloan' CHECK (kategori IN ('kiloan', 'satuan')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_brand) REFERENCES brand(id_brand)
+    FOREIGN KEY (id_brand) REFERENCES brand(id_brand),
+    FOREIGN KEY (id_kategori) REFERENCES kategori_layanan(id_kategori)
+
 );
 
 -- Tabel Transaksi
@@ -142,14 +166,14 @@ CREATE TABLE transaksi (
 CREATE TABLE detail_transaksi (
     id_detail SERIAL PRIMARY KEY,
     id_transaksi INTEGER NOT NULL,
-    id_paket INTEGER NOT NULL,
+    id_layanan INTEGER NOT NULL,
     kuantitas DECIMAL(5, 2),
     harga_satuan DECIMAL(10, 2),
     subtotal DECIMAL(15, 2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_transaksi) REFERENCES transaksi(id_transaksi) ON DELETE CASCADE,
-    FOREIGN KEY (id_paket) REFERENCES paket_layanan(id_paket)
+    FOREIGN KEY (id_layanan) REFERENCES paket_layanan(id_layanan)
 );
 
 -- Tabel Inventaris
@@ -223,6 +247,31 @@ CREATE TABLE history_status_transaksi (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_transaksi) REFERENCES transaksi(id_transaksi) ON DELETE CASCADE
 );
+-- Tabel Pembayaran
+CREATE TABLE IF NOT EXISTS pembayaran (
+    id_pembayaran SERIAL PRIMARY KEY,
+    id_transaksi INTEGER NOT NULL,
+    tanggal_bayar TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    jumlah_bayar DECIMAL(12, 2) NOT NULL,
+    metode_bayar VARCHAR(50), -- tunai, transfer, dll
+    catatan TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_transaksi) REFERENCES transaksi(id_transaksi) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS employee_access (
+    id_access SERIAL PRIMARY KEY,
+    id_pegawai INTEGER NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'karyawan',
+    is_active BOOLEAN DEFAULT true,
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
+);
+
 
 -- Index untuk optimasi query
 CREATE INDEX idx_transaksi_pelanggan ON transaksi(id_pelanggan);
@@ -233,6 +282,13 @@ CREATE INDEX idx_pegawai_outlet ON pegawai(id_outlet);
 CREATE INDEX idx_outlet_cabang ON outlet(id_cabang);
 CREATE INDEX idx_cabang_brand ON cabang(id_brand);
 CREATE INDEX idx_paket_brand ON paket_layanan(id_brand);
+CREATE INDEX idx_layanan_kategori ON paket_layanan(id_kategori);
+CREATE INDEX idx_pembayaran_transaksi ON pembayaran(id_transaksi);
+-- Add indexes for faster queries
+CREATE INDEX IF NOT EXISTS idx_employee_access_username ON employee_access(username);
+CREATE INDEX IF NOT EXISTS idx_employee_access_pegawai ON employee_access(id_pegawai);
+CREATE INDEX IF NOT EXISTS idx_employee_access_active ON employee_access(is_active);
+
 
 -- Function untuk mengenerate nomor invoice otomatis
 CREATE OR REPLACE FUNCTION generate_invoice_number()

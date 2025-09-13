@@ -34,7 +34,7 @@ func (u *serviceCategoryUsecase) GetAllServiceCategories() ([]entities.ServiceCa
 
 func (u *serviceCategoryUsecase) GetAllServiceCategoriesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
 	// Default ordering
-	orderBy := "kategori_id"
+	orderBy := "id_kategori"
 	orderDir := "asc"
 
 	// If ordering is specified

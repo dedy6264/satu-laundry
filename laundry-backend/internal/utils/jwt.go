@@ -18,17 +18,23 @@ type Claims struct {
 }
 
 // GenerateJWT creates a new JWT token with the specified claims
-func GenerateJWT(userID int, email, role string) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
-		UserID: userID,
-		Email:  email,
-		Role:   role,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-		},
+func GenerateJWT(userID, employeeID int, email, role string) (string, error) {
+	// expirationTime := time.Now().Add(24 * time.Hour)
+	// claims := &Claims{
+	// 	UserID: userID,
+	// 	Email:  email,
+	// 	Role:   role,
+	// 	RegisteredClaims: jwt.RegisteredClaims{
+	// 		ExpiresAt: jwt.NewNumericDate(expirationTime),
+	// 	},
+	// }
+	claims := jwt.MapClaims{
+		"user_id":     userID,     //employeeAccess.ID,
+		"employee_id": employeeID, //employeeAccess.ID,
+		// "username": employeeAccess.Username,
+		"role": role,
+		"exp":  float64(time.Now().Add(30 * time.Minute).Unix()),
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
