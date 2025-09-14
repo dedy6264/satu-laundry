@@ -3,8 +3,10 @@ package utils
 import (
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 
-	"github.com/spf13/viper"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -38,44 +40,46 @@ type LogConfig struct {
 }
 
 func LoadConfig() (*Config, error) {
-	// viper.SetConfigFile("./.env")
-	viper.SetConfigName(".env")
-	viper.SetConfigType("env")
-	viper.AddConfigPath("/app") // explicit
-	viper.AddConfigPath(".")    // current dir
-	viper.AddConfigPath("..")   // parent dir
+	// viper.SetConfigFile(".env")
+	// viper.SetConfigName(".env")
+	// viper.SetConfigType("env")
+	// viper.AddConfigPath("/app") // explicit
+	// viper.AddConfigPath(".")    // current dir
+	// viper.AddConfigPath("..")   // parent dir
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading config file: %v", err)
-	}
+	// if err := viper.ReadInConfig(); err != nil {
+	// 	log.Fatalf("Error reading config file: %v", err)
+	// }
 	// viper.AutomaticEnv() // Removed to prevent environment variables from overriding .env
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Error reading config file, %s", err)
-	}
+	// if err := viper.ReadInConfig(); err != nil {
+	// 	log.Printf("Error reading config file, %s", err)
+	// }
 
 	// Debug: Print all config values
-	log.Printf("All config values: %+v", viper.AllSettings())
-
+	// log.Printf("All config values: %+v", viper.AllSettings())
+	exp, _ := strconv.Atoi(GetEnv("JWT_EXPIRE"))
+	readTimeout, _ := strconv.Atoi(GetEnv("SERVER_READ_TIMEOUT"))
+	writeTimeout, _ := strconv.Atoi(GetEnv("SERVER_WRITE_TIMEOUT"))
 	config := &Config{
 		Server: ServerConfig{
-			Address:      viper.GetString("SERVER_ADDRESS"),
-			ReadTimeout:  viper.GetInt("SERVER_READ_TIMEOUT"),
-			WriteTimeout: viper.GetInt("SERVER_WRITE_TIMEOUT"),
+			Address:      GetEnv("SERVER_ADDRESS"),
+			ReadTimeout:  readTimeout,
+			WriteTimeout: writeTimeout,
 		},
 		Database: DatabaseConfig{
-			Host:     viper.GetString("DB_HOST"),
-			Port:     viper.GetString("DB_PORT"),
-			User:     viper.GetString("DB_USER"),
-			Password: viper.GetString("DB_PASSWORD"),
-			Name:     viper.GetString("DB_NAME"),
+			Host:     GetEnv("DB_HOST"),
+			Port:     GetEnv("DB_PORT"),
+			User:     GetEnv("DB_USER"),
+			Password: GetEnv("DB_PASSWORD"),
+			Name:     GetEnv("DB_NAME"),
 		},
 		JWT: JWTConfig{
-			Secret: viper.GetString("JWT_SECRET"),
-			Expire: viper.GetInt("JWT_EXPIRE"),
+			Secret: GetEnv("JWT_SECRET"),
+			Expire: exp,
 		},
 		Log: LogConfig{
-			Level: viper.GetString("LOG_LEVEL"),
+			Level: GetEnv("LOG_LEVEL"),
 		},
 	}
 
@@ -90,4 +94,21 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return config, nil
+}
+
+func GetEnv(key string, value ...string) string {
+	if err := godotenv.Load(".env"); err != nil {
+		panic("Error Load file .env not found")
+	}
+
+	if os.Getenv(key) != "" {
+		log.Println(key, os.Getenv(key))
+		return os.Getenv(key)
+	} else {
+		if len(value) > 0 {
+			log.Println(key, value)
+			return value[0]
+		}
+		return ""
+	}
 }

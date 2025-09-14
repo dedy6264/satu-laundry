@@ -31,7 +31,8 @@ func main() {
 	// Initialize database connection
 	db, err := initDB(config)
 	if err != nil {
-		log.Fatal("Cannot connect to database:", err)
+		// log.Fatal("Cannot connect to database:", err)
+		panic(err)
 	}
 	defer db.Close()
 
