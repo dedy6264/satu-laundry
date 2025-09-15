@@ -65,20 +65,31 @@ type Outlet struct {
 }
 
 type Transaction struct {
-	ID             int       `json:"id"`
-	CustomerID     int       `json:"id_pelanggan"`
-	OutletID       int       `json:"id_outlet"`
-	InvoiceNumber  string    `json:"nomor_invoice"`
-	EntryDate      time.Time `json:"tanggal_masuk"`
-	CompletionDate time.Time `json:"tanggal_selesai"`
-	PickupDate     time.Time `json:"tanggal_diambil"`
-	Status         string    `json:"status"`
-	TotalCost      float64   `json:"total_biaya"`
-	PaidAmount     float64   `json:"dibayar"`
-	Change         float64   `json:"kembalian"`
-	Note           string    `json:"catatan"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID                     int       `json:"id"`
+	CustomerID             int       `json:"id_pelanggan"`
+	OutletID               int       `json:"id_outlet"`
+	InvoiceNumber          string    `json:"nomor_invoice"`
+	EntryDate              time.Time `json:"tanggal_masuk"`
+	CompletionDate         time.Time `json:"tanggal_selesai"`
+	PickupDate             time.Time `json:"tanggal_diambil"`
+	Status                 string    `json:"status"`
+	TotalCost              float64   `json:"total_biaya"`
+	PaidAmount             float64   `json:"dibayar"`
+	Change                 float64   `json:"kembalian"`
+	Note                   string    `json:"catatan"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
+	CreatedBy              string    `json:"created_by"`
+	UpdatedBy              string    `json:"updated_by"`
+	TransactionID          int       `json:"id_transaksi"`
+	EmployeeID             int       `json:"id_pegawai"`
+	TotalPrice             float64   `json:"total_harga"`
+	ChangeAmount           float64   `json:"uang_kembalian"`
+	PaymentStatus          string    `json:"status_pembayaran"`
+	PaymentMethod          string    `json:"metode_pembayaran"`
+	StatusCode             string    `json:"status_kode"`
+	StatusMessage          string    `json:"status_pesan"`
+	PaymentReferenceNumber string    `json:"nomor_referensi_pembayaran"`
 }
 
 type TransactionDetail struct {
@@ -90,6 +101,8 @@ type TransactionDetail struct {
 	Subtotal      float64   `json:"subtotal"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+	CreatedBy     string    `json:"created_by"`
+	UpdatedBy     string    `json:"updated_by"`
 }
 
 type Employee struct {

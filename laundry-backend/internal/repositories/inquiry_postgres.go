@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"laundry-backend/internal/entities"
+	"laundry-backend/internal/utils"
 	"time"
 )
 
@@ -145,12 +146,32 @@ func (r *inquiryPostgresRepository) BeginTransaction() (*sql.Tx, error) {
 
 func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) error {
 	query := `INSERT INTO transaksi (
-		id_pelanggan, id_outlet, nomor_invoice, tanggal_masuk, status_transaksi, catatan
-	) VALUES (
-		$1, $2, $3, $4, $5, $6
+		id_pelanggan, 
+		id_outlet, 
+		nomor_invoice, 
+		tanggal_masuk, 
+		status_transaksi, 
+		catatan,
+		id_pegawai,
+		tanggal_selesai,
+		tanggal_diambil,
+		total_harga,
+		uang_bayar,
+		uang_kembalian,
+		status_pembayaran,
+		metode_pembayaran,
+		status_kode,
+		status_pesan,
+		nomor_referensi_pembayaran,
+		created_at,
+		updated_at,
+		created_by,
+		updated_by
+	) VALUES (?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
 	) RETURNING id_transaksi`
 
 	var id int
+	query = utils.QuerySupport(query)
 	err := tx.QueryRow(
 		query,
 		transaction.CustomerID,
@@ -159,6 +180,21 @@ func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transact
 		transaction.EntryDate,
 		transaction.Status,
 		transaction.Note,
+		transaction.EmployeeID,
+		transaction.CompletionDate,
+		transaction.PickupDate,
+		transaction.TotalPrice,
+		transaction.PaidAmount,
+		transaction.ChangeAmount,
+		transaction.PaymentStatus,
+		transaction.PaymentMethod,
+		transaction.StatusCode,
+		transaction.StatusMessage,
+		transaction.PaymentReferenceNumber,
+		transaction.CreatedAt,
+		transaction.UpdatedAt,
+		transaction.CreatedBy,
+		transaction.UpdatedBy,
 	).Scan(&id)
 
 	if err != nil {
@@ -176,12 +212,20 @@ func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transact
 
 func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, detail *entities.TransactionDetail) error {
 	query := `INSERT INTO detail_transaksi (
-		id_transaksi, id_layanan, kuantitas, harga_satuan, subtotal
-	) VALUES (
-		$1, $2, $3, $4, $5
+			id_transaksi,
+			id_layanan,
+			kuantitas,
+			harga_satuan,
+			subtotal,
+			created_at,
+			updated_at,
+			created_by,
+			updated_by
+	) VALUES (?,?,?,?,?,?,?,?,?
 	) RETURNING id_detail`
 
 	var id int
+	query = utils.QuerySupport(query)
 	err := tx.QueryRow(
 		query,
 		detail.TransactionID,
@@ -189,6 +233,10 @@ func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, de
 		detail.Quantity,
 		detail.Price,
 		detail.Subtotal,
+		detail.CreatedAt,
+		detail.UpdatedAt,
+		detail.CreatedBy,
+		detail.UpdatedBy,
 	).Scan(&id)
 
 	if err != nil {

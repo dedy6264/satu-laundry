@@ -121,15 +121,16 @@ CREATE TABLE IF NOT EXISTS kategori_layanan (
 
 -- Tabel Paket Layanan
 CREATE TABLE paket_layanan (
-    id_layanan SERIAL PRIMARY KEY,
-    nama_layanan VARCHAR(100) NOT NULL,
     id_kategori INTEGER NOT NULL,
     id_brand INTEGER NOT NULL,
+    id_layanan SERIAL PRIMARY KEY,
+    nama_layanan VARCHAR(100) NOT NULL,
     deskripsi TEXT,
-    harga_per_kg DECIMAL(10, 2),
+    harga_satuan DECIMAL(10, 2),-- harga_per_kg->harga_satuan
+    satuan VARCHAR(100) NOT NULL,-- kg, 10kg, load(1 kali cuci)
     durasi_pengerjaan INTEGER,
     satuan_durasi VARCHAR(10) DEFAULT 'hari' CHECK (satuan_durasi IN ('jam', 'hari')),
-    kategori VARCHAR(20) DEFAULT 'kiloan' CHECK (kategori IN ('kiloan', 'satuan')),
+    kategori VARCHAR(20) DEFAULT 'kiloan' CHECK (kategori IN ('kiloan', 'satuan')),--??
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_brand) REFERENCES brand(id_brand),
@@ -147,16 +148,24 @@ CREATE TABLE transaksi (
     tanggal_masuk TIMESTAMP,
     tanggal_selesai TIMESTAMP,
     tanggal_diambil TIMESTAMP,
-    berat_laundry DECIMAL(5, 2),
+    -- berat_laundry DECIMAL(5, 2),
     total_harga DECIMAL(15, 2),
     uang_bayar DECIMAL(15, 2),
     uang_kembalian DECIMAL(15, 2),
+
     status_transaksi VARCHAR(20) DEFAULT 'diterima' CHECK (status_transaksi IN ('diterima', 'diproses', 'selesai', 'diambil')),
     status_pembayaran VARCHAR(20) DEFAULT 'belum lunas' CHECK (status_pembayaran IN ('lunas', 'belum lunas')),
     metode_pembayaran VARCHAR(20) DEFAULT 'tunai' CHECK (metode_pembayaran IN ('tunai', 'transfer', 'e-wallet')),
     catatan TEXT,
+
+    status_kode VARCHAR(3),
+    status_pesan VARCHAR(100),
+    nomor_referensi_pembayaran VARCHAR(50),
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(10),
+    updated_by VARCHAR(10),
     FOREIGN KEY (id_pelanggan) REFERENCES pelanggan(id_pelanggan),
     FOREIGN KEY (id_outlet) REFERENCES outlet(id_outlet),
     FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai)
@@ -172,6 +181,8 @@ CREATE TABLE detail_transaksi (
     subtotal DECIMAL(15, 2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(10),
+    updated_by VARCHAR(10),
     FOREIGN KEY (id_transaksi) REFERENCES transaksi(id_transaksi) ON DELETE CASCADE,
     FOREIGN KEY (id_layanan) REFERENCES paket_layanan(id_layanan)
 );
