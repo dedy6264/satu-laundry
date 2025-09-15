@@ -20,6 +20,10 @@ func NewInquiryUsecase(inquiryRepo repositories.InquiryRepository) InquiryUsecas
 }
 
 func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
+	var (
+		t = time.Now()
+		// tdb = t.Local().Format(time.RFC3339)
+	)
 	// Validate service package
 	valid, err := u.inquiryRepo.ValidateServicePackage(request.ServicePackageID)
 	if err != nil {
@@ -69,14 +73,25 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 		CustomerID:    request.CustomerID,
 		OutletID:      employee.OutletID,
 		InvoiceNumber: generateInvoiceNumber(),
-		EntryDate:     time.Now(),
+		EntryDate:     t,
 		Status:        "diterima", // Default status
-		TotalCost:     subtotal,
 		Note:          request.Note,
+
+		CreatedAt:              t,
+		UpdatedAt:              t,
+		CreatedBy:              employee.Name,
+		UpdatedBy:              employee.Name,
+		EmployeeID:             employee.ID,
+		TotalPrice:             subtotal,
+		PaymentStatus:          "belum lunas",
+		PaymentMethod:          "tunai",
+		StatusCode:             "009",
+		StatusMessage:          "INQUIRY SUCCESS",
+		PaymentReferenceNumber: "",
 	}
 
 	// Insert transaction with transaction
-	err = u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
+	id, err := u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to insert transaction: %w", err)
@@ -84,11 +99,15 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 
 	// Create transaction detail
 	detail := &entities.TransactionDetail{
-		TransactionID: transaction.ID,
+		TransactionID: id,
 		ServiceID:     request.ServicePackageID,
 		Quantity:      request.Quantity,
 		Price:         price,
 		Subtotal:      subtotal,
+		CreatedAt:     t,
+		UpdatedAt:     t,
+		CreatedBy:     employee.Name,
+		UpdatedBy:     employee.Name,
 	}
 
 	// Insert transaction detail with transaction

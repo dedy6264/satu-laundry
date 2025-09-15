@@ -164,8 +164,8 @@ CREATE TABLE transaksi (
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(10),
-    updated_by VARCHAR(10),
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100),
     FOREIGN KEY (id_pelanggan) REFERENCES pelanggan(id_pelanggan),
     FOREIGN KEY (id_outlet) REFERENCES outlet(id_outlet),
     FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai)
@@ -181,8 +181,8 @@ CREATE TABLE detail_transaksi (
     subtotal DECIMAL(15, 2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(10),
-    updated_by VARCHAR(10),
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100),
     FOREIGN KEY (id_transaksi) REFERENCES transaksi(id_transaksi) ON DELETE CASCADE,
     FOREIGN KEY (id_layanan) REFERENCES paket_layanan(id_layanan)
 );

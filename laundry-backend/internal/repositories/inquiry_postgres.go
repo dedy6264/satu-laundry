@@ -124,7 +124,7 @@ func (r *inquiryPostgresRepository) InsertTransactionDetail(detail *entities.Tra
 }
 
 func (r *inquiryPostgresRepository) GetServicePackagePrice(id int) (float64, error) {
-	query := `SELECT harga_per_kg FROM paket_layanan WHERE id_layanan = $1`
+	query := `SELECT harga_satuan FROM paket_layanan WHERE id_layanan = $1`
 	row := r.db.QueryRow(query, id)
 
 	var price float64
@@ -144,7 +144,7 @@ func (r *inquiryPostgresRepository) BeginTransaction() (*sql.Tx, error) {
 	return r.db.Begin()
 }
 
-func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) error {
+func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) (int, error) {
 	query := `INSERT INTO transaksi (
 		id_pelanggan, 
 		id_outlet, 
@@ -198,7 +198,7 @@ func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transact
 	).Scan(&id)
 
 	if err != nil {
-		return err
+		return id, err
 	}
 
 	transaction.ID = id
@@ -207,7 +207,7 @@ func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transact
 	transaction.CreatedAt = now
 	transaction.UpdatedAt = now
 
-	return nil
+	return id, nil
 }
 
 func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, detail *entities.TransactionDetail) error {

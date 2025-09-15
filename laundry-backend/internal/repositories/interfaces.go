@@ -1,7 +1,6 @@
 package repositories
 
 import (
-
 	"database/sql"
 	"laundry-backend/internal/entities"
 )
@@ -49,7 +48,7 @@ type InquiryRepository interface {
 	GetServicePackagePrice(id int) (float64, error)
 	// Transaction methods
 	BeginTransaction() (*sql.Tx, error)
-	InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) error
+	InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) (int, error)
 	InsertTransactionDetailWithTx(tx *sql.Tx, detail *entities.TransactionDetail) error
 }
 

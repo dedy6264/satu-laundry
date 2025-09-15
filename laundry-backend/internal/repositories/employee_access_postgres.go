@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"laundry-backend/internal/entities"
+	"log"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -331,6 +332,7 @@ func (r *employeeAccessPostgresRepository) AuthenticateEmployee(username, passwo
 
 	err = bcrypt.CompareHashAndPassword([]byte(employeeAccess.Password), []byte(password))
 	if err != nil {
+		log.Println("Password doesn't match")
 		return nil, nil // Password doesn't match
 	}
 
@@ -340,6 +342,8 @@ func (r *employeeAccessPostgresRepository) AuthenticateEmployee(username, passwo
 	// Update last login time
 	err = r.UpdateLastLogin(employeeAccess.ID)
 	if err != nil {
+		log.Println("update last Login failed")
+
 		// Log error but don't fail the authentication
 		// In a real application, you would log this properly
 	}

@@ -73,7 +73,6 @@ type Transaction struct {
 	CompletionDate         time.Time `json:"tanggal_selesai"`
 	PickupDate             time.Time `json:"tanggal_diambil"`
 	Status                 string    `json:"status"`
-	TotalCost              float64   `json:"total_biaya"`
 	PaidAmount             float64   `json:"dibayar"`
 	Change                 float64   `json:"kembalian"`
 	Note                   string    `json:"catatan"`
