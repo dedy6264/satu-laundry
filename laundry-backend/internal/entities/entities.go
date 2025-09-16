@@ -73,21 +73,15 @@ type Transaction struct {
 	EntryDate      *time.Time `json:"tanggal_masuk"`
 	CompletionDate *time.Time `json:"tanggal_selesai"`
 	PickupDate     *time.Time `json:"tanggal_diambil"`
-	// Weight              float64    `json:"berat_laundry"`  // This field is commented out in the schema
-	TotalPrice             float64   `json:"total_harga"`
-	PaidAmount             float64   `json:"uang_bayar"`
-	ChangeAmount           float64   `json:"uang_kembalian"`
-	Status                 string    `json:"status_transaksi"`
-	PaymentStatus          string    `json:"status_pembayaran"`
-	PaymentMethod          string    `json:"metode_pembayaran"`
-	Note                   string    `json:"catatan"`
-	StatusCode             *string   `json:"status_kode"`
-	StatusMessage          *string   `json:"status_pesan"`
-	PaymentReferenceNumber *string   `json:"nomor_referensi_pembayaran"`
-	CreatedAt              time.Time `json:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at"`
-	CreatedBy              *string   `json:"created_by"`
-	UpdatedBy              *string   `json:"updated_by"`
+	TotalPrice     float64    `json:"total_harga"`
+	PaidAmount     float64    `json:"uang_bayar"`
+	ChangeAmount   float64    `json:"uang_kembalian"`
+	Status         string     `json:"status_transaksi"`
+	Note           string     `json:"catatan"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	CreatedBy      *string    `json:"created_by"`
+	UpdatedBy      *string    `json:"updated_by"`
 }
 
 type TransactionDetail struct {
@@ -97,6 +91,7 @@ type TransactionDetail struct {
 	Quantity      *float64  `json:"kuantitas"`
 	Price         *float64  `json:"harga_satuan"`
 	Subtotal      *float64  `json:"subtotal"`
+	Status        *float64  `json:"status_pengerjaan"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 	CreatedBy     *string   `json:"created_by"`

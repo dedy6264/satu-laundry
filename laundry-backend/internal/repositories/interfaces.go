@@ -43,8 +43,6 @@ type InquiryRepository interface {
 	ValidateServicePackage(id int) (bool, error)
 	ValidateEmployee(id int) (*entities.Employee, error)
 	ValidateCustomer(id int) (bool, error)
-	InsertTransaction(transaction *entities.Transaction) error
-	InsertTransactionDetail(detail *entities.TransactionDetail) error
 	GetServicePackagePrice(id int) (float64, error)
 	// Transaction methods
 	BeginTransaction() (*sql.Tx, error)

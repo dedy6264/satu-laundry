@@ -19,12 +19,23 @@ func NewTransactionRepository(db *sql.DB) TransactionRepository {
 func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error) {
 	query := `
 		SELECT 
-			t.id_transaksi, t.id_pelanggan, t.id_outlet, t.id_pegawai, t.nomor_invoice, 
-			t.tanggal_masuk, t.tanggal_selesai, t.tanggal_diambil, 
-			t.total_harga, t.uang_bayar, t.uang_kembalian, t.status_transaksi,
-			t.status_pembayaran, t.metode_pembayaran, COALESCE(t.catatan,''), t.status_kode, 
-			t.status_pesan, t.nomor_referensi_pembayaran, t.created_at, t.updated_at,
-			t.created_by, t.updated_by
+		t.id_transaksi,
+		t.id_pelanggan,
+		t.id_outlet,
+		t.id_pegawai,
+		t.nomor_invoice,			 
+		t.tanggal_masuk,
+		t.tanggal_selesai,
+		t.tanggal_diambil,			 
+		t.total_harga,
+		t.uang_bayar,
+		t.uang_kembalian,
+		t.status_transaksi,			
+		COALESCE(t.catatan,''),
+		t.created_at,
+		t.updated_at,			
+		t.created_by,
+		t.updated_by
 		FROM transaksi t
 		ORDER BY t.id_transaksi`
 
@@ -39,7 +50,7 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 		var transaction entities.Transaction
 		var employeeID sql.NullInt64
 		var entryDate, completionDate, pickupDate sql.NullTime
-		var statusCode, statusMessage, paymentReferenceNumber, createdBy, updatedBy sql.NullString
+		var createdBy, updatedBy sql.NullString
 
 		err := rows.Scan(
 			&transaction.ID,
@@ -54,12 +65,7 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 			&transaction.PaidAmount,
 			&transaction.ChangeAmount,
 			&transaction.Status,
-			&transaction.PaymentStatus,
-			&transaction.PaymentMethod,
 			&transaction.Note,
-			&statusCode,
-			&statusMessage,
-			&paymentReferenceNumber,
 			&transaction.CreatedAt,
 			&transaction.UpdatedAt,
 			&createdBy,
@@ -83,15 +89,7 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 		if pickupDate.Valid {
 			transaction.PickupDate = &pickupDate.Time
 		}
-		if statusCode.Valid {
-			transaction.StatusCode = &statusCode.String
-		}
-		if statusMessage.Valid {
-			transaction.StatusMessage = &statusMessage.String
-		}
-		if paymentReferenceNumber.Valid {
-			transaction.PaymentReferenceNumber = &paymentReferenceNumber.String
-		}
+
 		if createdBy.Valid {
 			transaction.CreatedBy = &createdBy.String
 		}
@@ -116,12 +114,23 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 	// Data query
 	dataQuery := `
 		SELECT 
-			t.id_transaksi, t.id_pelanggan, t.id_outlet, t.id_pegawai, t.nomor_invoice, 
-			t.tanggal_masuk, t.tanggal_selesai, t.tanggal_diambil, 
-			t.total_harga, t.uang_bayar, t.uang_kembalian, t.status_transaksi,
-			t.status_pembayaran, t.metode_pembayaran, COALESCE(t.catatan,''), t.status_kode, 
-			t.status_pesan, t.nomor_referensi_pembayaran, t.created_at, t.updated_at,
-			t.created_by, t.updated_by
+		t.id_transaksi,
+		t.id_pelanggan,
+		t.id_outlet,
+		t.id_pegawai,
+		t.nomor_invoice,			 
+		t.tanggal_masuk,
+		t.tanggal_selesai,
+		t.tanggal_diambil,			 
+		t.total_harga,
+		t.uang_bayar,
+		t.uang_kembalian,
+		t.status_transaksi,			
+		COALESCE(t.catatan,''),
+		t.created_at,
+		t.updated_at,			
+		t.created_by,
+		t.updated_by
 		` + baseQuery
 
 	// Search condition
@@ -165,7 +174,7 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 		var transaction entities.Transaction
 		var employeeID sql.NullInt64
 		var entryDate, completionDate, pickupDate sql.NullTime
-		var statusCode, statusMessage, paymentReferenceNumber, createdBy, updatedBy sql.NullString
+		var createdBy, updatedBy sql.NullString
 
 		err := rows.Scan(
 			&transaction.ID,
@@ -180,12 +189,7 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 			&transaction.PaidAmount,
 			&transaction.ChangeAmount,
 			&transaction.Status,
-			&transaction.PaymentStatus,
-			&transaction.PaymentMethod,
 			&transaction.Note,
-			&statusCode,
-			&statusMessage,
-			&paymentReferenceNumber,
 			&transaction.CreatedAt,
 			&transaction.UpdatedAt,
 			&createdBy,
@@ -209,15 +213,6 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 		if pickupDate.Valid {
 			transaction.PickupDate = &pickupDate.Time
 		}
-		if statusCode.Valid {
-			transaction.StatusCode = &statusCode.String
-		}
-		if statusMessage.Valid {
-			transaction.StatusMessage = &statusMessage.String
-		}
-		if paymentReferenceNumber.Valid {
-			transaction.PaymentReferenceNumber = &paymentReferenceNumber.String
-		}
 		if createdBy.Valid {
 			transaction.CreatedBy = &createdBy.String
 		}
@@ -234,19 +229,30 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction, error) {
 	query := `
 		SELECT 
-			t.id_transaksi, t.id_pelanggan, t.id_outlet, t.id_pegawai, t.nomor_invoice, 
-			t.tanggal_masuk, t.tanggal_selesai, t.tanggal_diambil, 
-			t.total_harga, t.uang_bayar, t.uang_kembalian, t.status_transaksi,
-			t.status_pembayaran, t.metode_pembayaran, COALESCE(t.catatan,''), t.status_kode, 
-			t.status_pesan, t.nomor_referensi_pembayaran, t.created_at, t.updated_at,
-			t.created_by, t.updated_by
+			t.id_transaksi,
+		t.id_pelanggan,
+		t.id_outlet,
+		t.id_pegawai,
+		t.nomor_invoice,			 
+		t.tanggal_masuk,
+		t.tanggal_selesai,
+		t.tanggal_diambil,			 
+		t.total_harga,
+		t.uang_bayar,
+		t.uang_kembalian,
+		t.status_transaksi,			
+		COALESCE(t.catatan,''),
+		t.created_at,
+		t.updated_at,			
+		t.created_by,
+		t.updated_by
 		FROM transaksi t
 		WHERE t.id_transaksi = $1`
 
 	var transaction entities.Transaction
 	var employeeID sql.NullInt64
 	var entryDate, completionDate, pickupDate sql.NullTime
-	var statusCode, statusMessage, paymentReferenceNumber, createdBy, updatedBy sql.NullString
+	var createdBy, updatedBy sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&transaction.ID,
@@ -261,12 +267,7 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 		&transaction.PaidAmount,
 		&transaction.ChangeAmount,
 		&transaction.Status,
-		&transaction.PaymentStatus,
-		&transaction.PaymentMethod,
 		&transaction.Note,
-		&statusCode,
-		&statusMessage,
-		&paymentReferenceNumber,
 		&transaction.CreatedAt,
 		&transaction.UpdatedAt,
 		&createdBy,
@@ -293,15 +294,7 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 	if pickupDate.Valid {
 		transaction.PickupDate = &pickupDate.Time
 	}
-	if statusCode.Valid {
-		transaction.StatusCode = &statusCode.String
-	}
-	if statusMessage.Valid {
-		transaction.StatusMessage = &statusMessage.String
-	}
-	if paymentReferenceNumber.Valid {
-		transaction.PaymentReferenceNumber = &paymentReferenceNumber.String
-	}
+
 	if createdBy.Valid {
 		transaction.CreatedBy = &createdBy.String
 	}
@@ -315,12 +308,23 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities.Transaction, error) {
 	query := `
 		SELECT 
-			t.id_transaksi, t.id_pelanggan, t.id_outlet, t.id_pegawai, t.nomor_invoice, 
-			t.tanggal_masuk, t.tanggal_selesai, t.tanggal_diambil, 
-			t.total_harga, t.uang_bayar, t.uang_kembalian, t.status_transaksi,
-			t.status_pembayaran, t.metode_pembayaran, COALESCE(t.catatan,''), t.status_kode, 
-			t.status_pesan, t.nomor_referensi_pembayaran, t.created_at, t.updated_at,
-			t.created_by, t.updated_by
+			t.id_transaksi,
+		t.id_pelanggan,
+		t.id_outlet,
+		t.id_pegawai,
+		t.nomor_invoice,			 
+		t.tanggal_masuk,
+		t.tanggal_selesai,
+		t.tanggal_diambil,			 
+		t.total_harga,
+		t.uang_bayar,
+		t.uang_kembalian,
+		t.status_transaksi,			
+		COALESCE(t.catatan,''),
+		t.created_at,
+		t.updated_at,			
+		t.created_by,
+		t.updated_by
 		FROM transaksi t
 		WHERE t.id_outlet = $1
 		ORDER BY t.id_transaksi`
@@ -336,7 +340,7 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 		var transaction entities.Transaction
 		var employeeID sql.NullInt64
 		var entryDate, completionDate, pickupDate sql.NullTime
-		var statusCode, statusMessage, paymentReferenceNumber, createdBy, updatedBy sql.NullString
+		var createdBy, updatedBy sql.NullString
 
 		err := rows.Scan(
 			&transaction.ID,
@@ -351,12 +355,7 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 			&transaction.PaidAmount,
 			&transaction.ChangeAmount,
 			&transaction.Status,
-			&transaction.PaymentStatus,
-			&transaction.PaymentMethod,
 			&transaction.Note,
-			&statusCode,
-			&statusMessage,
-			&paymentReferenceNumber,
 			&transaction.CreatedAt,
 			&transaction.UpdatedAt,
 			&createdBy,
@@ -380,15 +379,6 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 		if pickupDate.Valid {
 			transaction.PickupDate = &pickupDate.Time
 		}
-		if statusCode.Valid {
-			transaction.StatusCode = &statusCode.String
-		}
-		if statusMessage.Valid {
-			transaction.StatusMessage = &statusMessage.String
-		}
-		if paymentReferenceNumber.Valid {
-			transaction.PaymentReferenceNumber = &paymentReferenceNumber.String
-		}
 		if createdBy.Valid {
 			transaction.CreatedBy = &createdBy.String
 		}
@@ -405,8 +395,17 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID int) ([]entities.TransactionDetail, error) {
 	query := `
 		SELECT 
-			td.id_detail, td.id_transaksi, td.id_layanan, td.kuantitas, td.harga_satuan, td.subtotal,
-			td.created_at, td.updated_at, td.created_by, td.updated_by
+			td.id_detail,
+			td.id_transaksi,
+			td.id_layanan,
+			td.kuantitas,
+			td.harga_satuan,
+			td.subtotal,
+			td.status_pengerjaan,
+			td.created_at,
+			td.updated_at,
+			td.created_by,
+			td.updated_by
 		FROM detail_transaksi td
 		WHERE td.id_transaksi = $1
 		ORDER BY td.id_detail`
@@ -422,7 +421,7 @@ func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID
 		var detail entities.TransactionDetail
 		var quantity, price, subtotal sql.NullFloat64
 		var createdBy, updatedBy sql.NullString
-		
+
 		err := rows.Scan(
 			&detail.ID,
 			&detail.TransactionID,
@@ -430,6 +429,7 @@ func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID
 			&quantity,
 			&price,
 			&subtotal,
+			&detail.Status,
 			&detail.CreatedAt,
 			&detail.UpdatedAt,
 			&createdBy,
@@ -438,7 +438,7 @@ func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// Handle nullable fields
 		if quantity.Valid {
 			detail.Quantity = &quantity.Float64
@@ -455,7 +455,7 @@ func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID
 		if updatedBy.Valid {
 			detail.UpdatedBy = &updatedBy.String
 		}
-		
+
 		details = append(details, detail)
 	}
 
@@ -472,6 +472,7 @@ func (r *transactionPostgresRepository) UpdateTransactionStatus(id int, status s
 	return err
 }
 
+// ////perlu update
 func (r *transactionPostgresRepository) UpdatePaymentStatus(id int, status string) error {
 	query := `
 		UPDATE transaksi
@@ -496,7 +497,7 @@ func (r *transactionPostgresRepository) UpdatePaymentCallback(transactionID int,
 			updated_at = NOW()
 		WHERE id_transaksi = $8`
 
-	_, err := r.db.Exec(query, 
+	_, err := r.db.Exec(query,
 		request.PaymentStatus,
 		request.PaymentMethod,
 		request.PaymentReferenceNumber,

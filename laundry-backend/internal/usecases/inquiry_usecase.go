@@ -77,17 +77,12 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 		Status:        "diterima", // Default status
 		Note:          request.Note,
 
-		CreatedAt:              t,
-		UpdatedAt:              t,
-		CreatedBy:              &employee.Name,
-		UpdatedBy:              &employee.Name,
-		EmployeeID:             &employee.ID,
-		TotalPrice:             subtotal,
-		PaymentStatus:          "belum lunas",
-		PaymentMethod:          "tunai",
-		StatusCode:             stringPtr("009"),
-		StatusMessage:          stringPtr("INQUIRY SUCCESS"),
-		PaymentReferenceNumber: stringPtr(""),
+		CreatedAt:  t,
+		UpdatedAt:  t,
+		CreatedBy:  &employee.Name,
+		UpdatedBy:  &employee.Name,
+		EmployeeID: &employee.ID,
+		TotalPrice: subtotal,
 	}
 
 	// Insert transaction with transaction

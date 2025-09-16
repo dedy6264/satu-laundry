@@ -62,67 +62,6 @@ func (r *inquiryPostgresRepository) ValidateCustomer(id int) (bool, error) {
 	return count > 0, nil
 }
 
-func (r *inquiryPostgresRepository) InsertTransaction(transaction *entities.Transaction) error {
-	query := `INSERT INTO transaksi (
-		id_pelanggan, id_outlet, nomor_invoice, tanggal_masuk, status_transaksi, catatan
-	) VALUES (
-		$1, $2, $3, $4, $5, $6
-	) RETURNING id_transaksi`
-
-	var id int
-	err := r.db.QueryRow(
-		query,
-		transaction.CustomerID,
-		transaction.OutletID,
-		transaction.InvoiceNumber,
-		transaction.EntryDate,
-		transaction.Status,
-		transaction.Note,
-	).Scan(&id)
-
-	if err != nil {
-		return err
-	}
-
-	transaction.ID = id
-	// Set default values for timestamps
-	now := time.Now()
-	transaction.CreatedAt = now
-	transaction.UpdatedAt = now
-
-	return nil
-}
-
-func (r *inquiryPostgresRepository) InsertTransactionDetail(detail *entities.TransactionDetail) error {
-	query := `INSERT INTO detail_transaksi (
-		id_transaksi, id_layanan, kuantitas, harga_satuan, subtotal
-	) VALUES (
-		$1, $2, $3, $4, $5
-	) RETURNING id_detail`
-
-	var id int
-	err := r.db.QueryRow(
-		query,
-		detail.TransactionID,
-		detail.ServiceID,
-		detail.Quantity,
-		detail.Price,
-		detail.Subtotal,
-	).Scan(&id)
-
-	if err != nil {
-		return err
-	}
-
-	detail.ID = id
-	// Set default values for timestamps
-	now := time.Now()
-	detail.CreatedAt = now
-	detail.UpdatedAt = now
-
-	return nil
-}
-
 func (r *inquiryPostgresRepository) GetServicePackagePrice(id int) (float64, error) {
 	query := `SELECT harga_satuan FROM paket_layanan WHERE id_layanan = $1`
 	row := r.db.QueryRow(query, id)
@@ -146,6 +85,7 @@ func (r *inquiryPostgresRepository) BeginTransaction() (*sql.Tx, error) {
 
 func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) (int, error) {
 	query := `INSERT INTO transaksi (
+
 		id_pelanggan, 
 		id_outlet, 
 		nomor_invoice, 
@@ -158,16 +98,11 @@ func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transact
 		total_harga,
 		uang_bayar,
 		uang_kembalian,
-		status_pembayaran,
-		metode_pembayaran,
-		status_kode,
-		status_pesan,
-		nomor_referensi_pembayaran,
 		created_at,
 		updated_at,
 		created_by,
 		updated_by
-	) VALUES (?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+	) VALUES (?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?,?,?,?
 	) RETURNING id_transaksi`
 
 	var id int
@@ -186,11 +121,6 @@ func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transact
 		transaction.TotalPrice,
 		transaction.PaidAmount,
 		transaction.ChangeAmount,
-		transaction.PaymentStatus,
-		transaction.PaymentMethod,
-		transaction.StatusCode,
-		transaction.StatusMessage,
-		transaction.PaymentReferenceNumber,
 		transaction.CreatedAt,
 		transaction.UpdatedAt,
 		transaction.CreatedBy,
@@ -217,11 +147,12 @@ func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, de
 			kuantitas,
 			harga_satuan,
 			subtotal,
+			status_pengerjaan,
 			created_at,
 			updated_at,
 			created_by,
 			updated_by
-	) VALUES (?,?,?,?,?,?,?,?,?
+	) VALUES (?,?,?,?,?,?,?,?,?,?
 	) RETURNING id_detail`
 
 	var id int
@@ -233,6 +164,7 @@ func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, de
 		detail.Quantity,
 		detail.Price,
 		detail.Subtotal,
+		detail.Status,
 		detail.CreatedAt,
 		detail.UpdatedAt,
 		detail.CreatedBy,
