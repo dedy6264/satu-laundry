@@ -38,7 +38,7 @@ type OutletUsecase interface {
 }
 
 type InquiryUsecase interface {
-	ProcessInquiry(request entities.InquiryRequest) error
+	ProcessInquiry(request entities.InquiryRequest) (*entities.InquiryResponse, error)
 }
 
 type EmployeeUsecase interface {

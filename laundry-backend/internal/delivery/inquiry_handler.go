@@ -41,12 +41,12 @@ func (h *InquiryHandler) ProcessInquiry(c echo.Context) error {
 	// 	utils.LoggMsg(svcName, fmt.Sprintf("Unauthorized role: %s", role), nil)
 	// 	return ErrorResponse(c, http.StatusForbidden, "Unauthorized role", "Only employees can process inquiries")
 	// }
-	err := h.inquiryUsecase.ProcessInquiry(request)
+	response, err := h.inquiryUsecase.ProcessInquiry(request)
 	if err != nil {
 		fmt.Printf("Failed to process inquiry: %v\n", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Failed to process inquiry", err.Error())
 	}
 
 	fmt.Printf("=== PROCESS INQUIRY HANDLER END ===\n")
-	return SuccessResponse(c, http.StatusOK, "Inquiry processed successfully", nil)
+	return SuccessResponse(c, http.StatusOK, "Inquiry processed successfully", response)
 }

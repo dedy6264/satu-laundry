@@ -19,7 +19,7 @@ func NewInquiryUsecase(inquiryRepo repositories.InquiryRepository) InquiryUsecas
 	}
 }
 
-func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
+func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) (*entities.InquiryResponse, error) {
 	var (
 		t = time.Now()
 		// tdb = t.Local().Format(time.RFC3339)
@@ -27,35 +27,35 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	// Validate service package
 	valid, err := u.inquiryRepo.ValidateServicePackage(request.ServicePackageID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !valid {
-		return errors.New("invalid service package")
+		return nil, errors.New("invalid service package")
 	}
 
 	// Validate employee and get employee data
 
 	employee, err := u.inquiryRepo.ValidateEmployee(request.EmployeeID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if employee == nil {
-		return errors.New("invalid employee")
+		return nil, errors.New("invalid employee")
 	}
 
 	// Validate customer
 	valid, err = u.inquiryRepo.ValidateCustomer(request.CustomerID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !valid {
-		return errors.New("invalid customer")
+		return nil, errors.New("invalid customer")
 	}
 
 	// Get service package price
 	price, err := u.inquiryRepo.GetServicePackagePrice(request.ServicePackageID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Calculate subtotal
@@ -64,7 +64,7 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	// Begin database transaction
 	tx, err := u.inquiryRepo.BeginTransaction()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	// Create transaction entity
@@ -89,7 +89,7 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	id, err := u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to insert transaction: %w", err)
+		return nil, fmt.Errorf("failed to insert transaction: %w", err)
 	}
 
 	// Create transaction detail
@@ -109,7 +109,7 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	err = u.inquiryRepo.InsertTransactionDetailWithTx(tx, detail)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to insert transaction detail: %w", err)
+		return nil, fmt.Errorf("failed to insert transaction detail: %w", err)
 	}
 
 	// Create initial payment record with default values
@@ -126,7 +126,7 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	err = u.inquiryRepo.InsertPaymentWithTx(tx, payment)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to insert payment: %w", err)
+		return nil, fmt.Errorf("failed to insert payment: %w", err)
 	}
 
 	// Create initial history status transaction record
@@ -144,16 +144,24 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	err = u.inquiryRepo.InsertHistoryStatusTransactionWithTx(tx, history)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to insert history status transaction: %w", err)
+		return nil, fmt.Errorf("failed to insert history status transaction: %w", err)
 	}
 
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	// Prepare the response
+	response := &entities.InquiryResponse{
+		Transaction:        *transaction,
+		TransactionDetails: []entities.TransactionDetail{*detail},
+		Payment:            *payment,
+		History:            *history,
+	}
+
+	return response, nil
 }
 
 // generateInvoiceNumber generates a unique invoice number

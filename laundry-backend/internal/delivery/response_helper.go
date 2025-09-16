@@ -11,7 +11,7 @@ func SuccessResponse(c echo.Context, statusCode int, message string, data interf
 	response := entities.APIResponse{
 		Status:  statusCode,
 		Message: message,
-		Data:    data,
+		Result:  data,
 	}
 	return c.JSON(statusCode, response)
 }

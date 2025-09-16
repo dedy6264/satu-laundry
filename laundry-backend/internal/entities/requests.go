@@ -60,6 +60,13 @@ type InquiryRequest struct {
 	Note             string  `json:"catatan"`
 }
 
+type InquiryResponse struct {
+	Transaction        Transaction        `json:"transaksi"`
+	TransactionDetails []TransactionDetail `json:"detail_transaksi"`
+	Payment            Payment            `json:"pembayaran"`
+	History            HistoryStatusTransaction `json:"history_status_transaksi"`
+}
+
 type RegisterEmployeeRequest struct {
 	OutletID  int     `json:"id_outlet"`
 	NIK       string  `json:"nik"`
