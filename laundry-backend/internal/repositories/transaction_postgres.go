@@ -422,7 +422,7 @@ func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID
 		var detail entities.TransactionDetail
 		var quantity, price, subtotal sql.NullFloat64
 		var createdBy, updatedBy sql.NullString
-
+		
 		err := rows.Scan(
 			&detail.ID,
 			&detail.TransactionID,
@@ -438,7 +438,7 @@ func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID
 		if err != nil {
 			return nil, err
 		}
-
+		
 		// Handle nullable fields
 		if quantity.Valid {
 			detail.Quantity = &quantity.Float64
@@ -455,9 +455,56 @@ func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID
 		if updatedBy.Valid {
 			detail.UpdatedBy = &updatedBy.String
 		}
-
+		
 		details = append(details, detail)
 	}
 
 	return details, nil
+}
+
+func (r *transactionPostgresRepository) UpdateTransactionStatus(id int, status string) error {
+	query := `
+		UPDATE transaksi
+		SET status_transaksi = $1, updated_at = NOW()
+		WHERE id_transaksi = $2`
+
+	_, err := r.db.Exec(query, status, id)
+	return err
+}
+
+func (r *transactionPostgresRepository) UpdatePaymentStatus(id int, status string) error {
+	query := `
+		UPDATE transaksi
+		SET status_pembayaran = $1, updated_at = NOW()
+		WHERE id_transaksi = $2`
+
+	_, err := r.db.Exec(query, status, id)
+	return err
+}
+
+func (r *transactionPostgresRepository) UpdatePaymentCallback(transactionID int, request entities.PaymentCallbackRequest) error {
+	query := `
+		UPDATE transaksi
+		SET 
+			status_pembayaran = $1,
+			metode_pembayaran = $2,
+			nomor_referensi_pembayaran = $3,
+			uang_bayar = $4,
+			uang_kembalian = $5,
+			status_kode = $6,
+			status_pesan = $7,
+			updated_at = NOW()
+		WHERE id_transaksi = $8`
+
+	_, err := r.db.Exec(query, 
+		request.PaymentStatus,
+		request.PaymentMethod,
+		request.PaymentReferenceNumber,
+		request.PaidAmount,
+		request.ChangeAmount,
+		request.StatusCode,
+		request.StatusMessage,
+		transactionID,
+	)
+	return err
 }

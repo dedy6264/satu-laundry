@@ -100,3 +100,72 @@ func (h *TransactionHandler) GetTransactionDetails(c echo.Context) error {
 
 	return SuccessResponse(c, http.StatusOK, "Transaction details retrieved successfully", details)
 }
+
+func (h *TransactionHandler) UpdateTransactionStatus(c echo.Context) error {
+	var (
+		svcName = "UpdateTransactionStatus"
+		request entities.UpdateTransactionStatusRequest
+	)
+	
+	transactionID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utils.LoggMsg(svcName, "Invalid transaction ID", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid transaction ID", err.Error())
+	}
+
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Failed to bind request", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
+	}
+
+	if err := h.transactionUsecase.UpdateTransactionStatus(transactionID, request); err != nil {
+		utils.LoggMsg(svcName, "Failed to update transaction status", err)
+		return ErrorResponse(c, http.StatusInternalServerError, "Failed to update transaction status", err.Error())
+	}
+
+	return MessageResponse(c, http.StatusOK, "Transaction status updated successfully")
+}
+
+func (h *TransactionHandler) UpdatePaymentStatus(c echo.Context) error {
+	var (
+		svcName = "UpdatePaymentStatus"
+		request entities.UpdatePaymentStatusRequest
+	)
+	
+	transactionID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utils.LoggMsg(svcName, "Invalid transaction ID", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid transaction ID", err.Error())
+	}
+
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Failed to bind request", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
+	}
+
+	if err := h.transactionUsecase.UpdatePaymentStatus(transactionID, request); err != nil {
+		utils.LoggMsg(svcName, "Failed to update payment status", err)
+		return ErrorResponse(c, http.StatusInternalServerError, "Failed to update payment status", err.Error())
+	}
+
+	return MessageResponse(c, http.StatusOK, "Payment status updated successfully")
+}
+
+func (h *TransactionHandler) ProcessPaymentCallback(c echo.Context) error {
+	var (
+		svcName = "ProcessPaymentCallback"
+		request entities.PaymentCallbackRequest
+	)
+
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Failed to bind request", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
+	}
+
+	if err := h.transactionUsecase.ProcessPaymentCallback(request); err != nil {
+		utils.LoggMsg(svcName, "Failed to process payment callback", err)
+		return ErrorResponse(c, http.StatusInternalServerError, "Failed to process payment callback", err.Error())
+	}
+
+	return MessageResponse(c, http.StatusOK, "Payment callback processed successfully")
+}

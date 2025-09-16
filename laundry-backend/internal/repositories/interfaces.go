@@ -110,6 +110,9 @@ type TransactionRepository interface {
 	FindByID(id int) (*entities.Transaction, error)
 	FindByOutletID(outletID int) ([]entities.Transaction, error)
 	FindDetailsByTransactionID(transactionID int) ([]entities.TransactionDetail, error)
+	UpdateTransactionStatus(id int, status string) error
+	UpdatePaymentStatus(id int, status string) error
+	UpdatePaymentCallback(transactionID int, request entities.PaymentCallbackRequest) error
 }
 
 type TransactionUsecase interface {
@@ -118,4 +121,7 @@ type TransactionUsecase interface {
 	GetTransactionByID(id int) (*entities.Transaction, error)
 	GetTransactionsByOutletID(outletID int) ([]entities.Transaction, error)
 	GetTransactionDetails(transactionID int) ([]entities.TransactionDetail, error)
+	UpdateTransactionStatus(id int, request entities.UpdateTransactionStatusRequest) error
+	UpdatePaymentStatus(id int, request entities.UpdatePaymentStatusRequest) error
+	ProcessPaymentCallback(request entities.PaymentCallbackRequest) error
 }

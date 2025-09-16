@@ -172,6 +172,9 @@ func main() {
 		api.GET("/transactions/:id", transactionHandler.GetTransactionByID)
 		api.GET("/transactions/outlet/:outlet_id", transactionHandler.GetTransactionsByOutletID)
 		api.GET("/transactions/:id/details", transactionHandler.GetTransactionDetails)
+		api.PUT("/transactions/:id/status", transactionHandler.UpdateTransactionStatus)
+		api.PUT("/transactions/:id/payment-status", transactionHandler.UpdatePaymentStatus)
+		api.POST("/transactions/payment-callback", transactionHandler.ProcessPaymentCallback)
 	}
 	// Start server
 	e.Logger.Fatal(e.Start(config.Server.Address))

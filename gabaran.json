@@ -1,0 +1,34 @@
+{
+    "status": 200,
+    "message": "Transactions retrieved successfully",
+    "result": {
+        "draw": 1,
+        "recordsTotal": 4,
+        "recordsFiltered": 4,
+        "data": [
+            {
+                "nomor_invoice": "INV202509160700308955",
+                "order_status_code": "",
+                "order_status_message": "",
+                "payment_status_code": "",
+                "payment_status_message": "",
+                "transaction_status_code": "",
+                "transaction_status_message": "",
+                "data_order": {},
+                "data_payment": {}
+            }
+        ]
+    }
+}
+
+
+transaksi
+1. order->sudah masuk dalam transaksi
+    a. diterima
+    b. diproses
+    c. selesai
+    d. diambil
+2. payment-> harus tb sendiri
+    a. gagal
+    b. pending
+    c. sukses

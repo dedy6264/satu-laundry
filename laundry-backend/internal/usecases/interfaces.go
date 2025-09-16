@@ -97,4 +97,7 @@ type TransactionUsecase interface {
 	GetTransactionByID(id int) (*entities.Transaction, error)
 	GetTransactionsByOutletID(outletID int) ([]entities.Transaction, error)
 	GetTransactionDetails(transactionID int) ([]entities.TransactionDetail, error)
+	UpdateTransactionStatus(id int, request entities.UpdateTransactionStatusRequest) error
+	UpdatePaymentStatus(id int, request entities.UpdatePaymentStatusRequest) error
+	ProcessPaymentCallback(request entities.PaymentCallbackRequest) error
 }

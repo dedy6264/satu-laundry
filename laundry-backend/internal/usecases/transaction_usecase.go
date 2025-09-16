@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"fmt"
 	"laundry-backend/internal/entities"
 	"laundry-backend/internal/repositories"
 )
@@ -75,4 +76,70 @@ func (u *transactionUsecase) GetTransactionsByOutletID(outletID int) ([]entities
 
 func (u *transactionUsecase) GetTransactionDetails(transactionID int) ([]entities.TransactionDetail, error) {
 	return u.transactionRepo.FindDetailsByTransactionID(transactionID)
+}
+
+func (u *transactionUsecase) UpdateTransactionStatus(id int, request entities.UpdateTransactionStatusRequest) error {
+	// Validate the status value
+	validStatuses := map[string]bool{
+		"diterima":  true,
+		"diproses":  true,
+		"selesai":   true,
+		"diambil":   true,
+	}
+	
+	if !validStatuses[request.Status] {
+		return fmt.Errorf("invalid transaction status: %s", request.Status)
+	}
+	
+	return u.transactionRepo.UpdateTransactionStatus(id, request.Status)
+}
+
+func (u *transactionUsecase) UpdatePaymentStatus(id int, request entities.UpdatePaymentStatusRequest) error {
+	// Validate the status value
+	validStatuses := map[string]bool{
+		"lunas":       true,
+		"belum lunas": true,
+	}
+	
+	if !validStatuses[request.Status] {
+		return fmt.Errorf("invalid payment status: %s", request.Status)
+	}
+	
+	return u.transactionRepo.UpdatePaymentStatus(id, request.Status)
+}
+
+func (u *transactionUsecase) ProcessPaymentCallback(request entities.PaymentCallbackRequest) error {
+	// Validate the payment status value
+	validStatuses := map[string]bool{
+		"lunas":       true,
+		"belum lunas": true,
+		"gagal":       true,
+	}
+	
+	if !validStatuses[request.PaymentStatus] {
+		return fmt.Errorf("invalid payment status: %s", request.PaymentStatus)
+	}
+	
+	// Validate the payment method value
+	validPaymentMethods := map[string]bool{
+		"tunai":     true,
+		"transfer":  true,
+		"e-wallet":  true,
+	}
+	
+	if request.PaymentMethod != "" && !validPaymentMethods[request.PaymentMethod] {
+		return fmt.Errorf("invalid payment method: %s", request.PaymentMethod)
+	}
+	
+	// First, check if the transaction exists
+	transaction, err := u.transactionRepo.FindByID(request.TransactionID)
+	if err != nil {
+		return fmt.Errorf("failed to find transaction: %w", err)
+	}
+	
+	if transaction == nil {
+		return fmt.Errorf("transaction not found with id: %d", request.TransactionID)
+	}
+	
+	return u.transactionRepo.UpdatePaymentCallback(request.TransactionID, request)
 }

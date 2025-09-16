@@ -82,3 +82,22 @@ type RegisterCustomerRequest struct {
 	Phone    string `json:"telepon"`
 	Address  string `json:"alamat"`
 }
+
+type UpdateTransactionStatusRequest struct {
+	Status string `json:"status_transaksi" validate:"required"`
+}
+
+type UpdatePaymentStatusRequest struct {
+	Status string `json:"status_pembayaran" validate:"required"`
+}
+
+type PaymentCallbackRequest struct {
+	TransactionID          int     `json:"id_transaksi" validate:"required"`
+	PaymentStatus          string  `json:"status_pembayaran" validate:"required"`
+	PaymentMethod          string  `json:"metode_pembayaran"`
+	PaymentReferenceNumber string  `json:"nomor_referensi_pembayaran"`
+	PaidAmount             float64 `json:"dibayar"`
+	ChangeAmount           float64 `json:"kembalian"`
+	StatusCode             string  `json:"status_kode"`
+	StatusMessage          string  `json:"status_pesan"`
+}
