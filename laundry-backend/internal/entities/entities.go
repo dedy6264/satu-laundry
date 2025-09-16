@@ -126,3 +126,29 @@ type Customer struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+
+type Payment struct {
+	ID                   int        `json:"id_pembayaran"`
+	TransactionID        int        `json:"id_transaksi"`
+	PaymentDate          *time.Time `json:"tanggal_bayar"`
+	Amount               float64    `json:"jumlah_bayar"`
+	Method               string     `json:"metode_bayar"`
+	PartnerReferenceNo   string     `json:"nomor_referensi_partner"`
+	PartnerStatusCode    string     `json:"status_code_partner"`
+	PartnerStatusMessage string     `json:"status_message_partner"`
+	Note                 string     `json:"catatan"`
+	CreatedAt            time.Time  `json:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at"`
+}
+
+type HistoryStatusTransaction struct {
+	ID              int        `json:"id_history"`
+	TransactionID   int        `json:"id_transaksi"`
+	OldStatus       string     `json:"status_lama"`
+	NewStatus       string     `json:"status_baru"`
+	ChangeTime      *time.Time `json:"waktu_perubahan"`
+	Description     string     `json:"keterangan"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+}

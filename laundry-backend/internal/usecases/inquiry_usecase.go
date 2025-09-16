@@ -112,6 +112,41 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 		return fmt.Errorf("failed to insert transaction detail: %w", err)
 	}
 
+	// Create initial payment record with default values
+	payment := &entities.Payment{
+		TransactionID: id,
+		PaymentDate:   &t,
+		Amount:        0,  // Default to 0 as no payment has been made yet
+		Method:        "", // Default to empty as no payment method selected yet
+		CreatedAt:     t,
+		UpdatedAt:     t,
+	}
+
+	// Insert payment record
+	err = u.inquiryRepo.InsertPaymentWithTx(tx, payment)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to insert payment: %w", err)
+	}
+
+	// Create initial history status transaction record
+	history := &entities.HistoryStatusTransaction{
+		TransactionID: id,
+		OldStatus:     "diterima", // No old status as this is the initial status
+		NewStatus:     "diterima",
+		ChangeTime:    &t,
+		Description:   "Transaksi baru dibuat",
+		CreatedAt:     t,
+		UpdatedAt:     t,
+	}
+
+	// Insert history status transaction record
+	err = u.inquiryRepo.InsertHistoryStatusTransactionWithTx(tx, history)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to insert history status transaction: %w", err)
+	}
+
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {

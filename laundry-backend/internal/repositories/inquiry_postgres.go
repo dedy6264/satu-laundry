@@ -183,3 +183,85 @@ func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, de
 
 	return nil
 }
+
+func (r *inquiryPostgresRepository) InsertPaymentWithTx(tx *sql.Tx, payment *entities.Payment) error {
+	query := `INSERT INTO pembayaran (
+			id_transaksi,
+			tanggal_bayar,
+			jumlah_bayar,
+			metode_bayar,
+			nomor_referensi_partner,
+			status_code_partner,
+			status_message_partner,
+			catatan,
+			created_at,
+			updated_at
+	) VALUES (?,?,?,?,?,?,?,?,?,?
+	) RETURNING id_pembayaran`
+
+	var id int
+	query = utils.QuerySupport(query)
+	err := tx.QueryRow(
+		query,
+		payment.TransactionID,
+		payment.PaymentDate,
+		payment.Amount,
+		payment.Method,
+		payment.PartnerReferenceNo,
+		payment.PartnerStatusCode,
+		payment.PartnerStatusMessage,
+		payment.Note,
+		payment.CreatedAt,
+		payment.UpdatedAt,
+	).Scan(&id)
+
+	if err != nil {
+		return err
+	}
+
+	payment.ID = id
+	// Set default values for timestamps
+	now := time.Now()
+	payment.CreatedAt = now
+	payment.UpdatedAt = now
+
+	return nil
+}
+
+func (r *inquiryPostgresRepository) InsertHistoryStatusTransactionWithTx(tx *sql.Tx, history *entities.HistoryStatusTransaction) error {
+	query := `INSERT INTO history_status_transaksi (
+			id_transaksi,
+			status_lama,
+			status_baru,
+			waktu_perubahan,
+			keterangan,
+			created_at,
+			updated_at
+	) VALUES (?,?,?,?,?,?,?
+	) RETURNING id_history`
+
+	var id int
+	query = utils.QuerySupport(query)
+	err := tx.QueryRow(
+		query,
+		history.TransactionID,
+		history.OldStatus,
+		history.NewStatus,
+		history.ChangeTime,
+		history.Description,
+		history.CreatedAt,
+		history.UpdatedAt,
+	).Scan(&id)
+
+	if err != nil {
+		return err
+	}
+
+	history.ID = id
+	// Set default values for timestamps
+	now := time.Now()
+	history.CreatedAt = now
+	history.UpdatedAt = now
+
+	return nil
+}

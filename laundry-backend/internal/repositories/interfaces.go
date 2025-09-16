@@ -48,6 +48,8 @@ type InquiryRepository interface {
 	BeginTransaction() (*sql.Tx, error)
 	InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) (int, error)
 	InsertTransactionDetailWithTx(tx *sql.Tx, detail *entities.TransactionDetail) error
+	InsertPaymentWithTx(tx *sql.Tx, payment *entities.Payment) error
+	InsertHistoryStatusTransactionWithTx(tx *sql.Tx, history *entities.HistoryStatusTransaction) error
 }
 
 type EmployeeRepository interface {
