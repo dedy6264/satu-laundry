@@ -29,6 +29,7 @@ type Brand struct {
 type Cabang struct {
 	ID         int       `json:"id"`
 	BrandID    int       `json:"brand_id"`
+	BrandName  int       `json:"nama_brand"`
 	Name       string    `json:"name"`
 	Address    string    `json:"address"`
 	City       string    `json:"city"`
@@ -127,7 +128,6 @@ type Customer struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-
 type Payment struct {
 	ID                   int        `json:"id_pembayaran"`
 	TransactionID        int        `json:"id_transaksi"`
@@ -143,12 +143,12 @@ type Payment struct {
 }
 
 type HistoryStatusTransaction struct {
-	ID              int        `json:"id_history"`
-	TransactionID   int        `json:"id_transaksi"`
-	OldStatus       string     `json:"status_lama"`
-	NewStatus       string     `json:"status_baru"`
-	ChangeTime      *time.Time `json:"waktu_perubahan"`
-	Description     string     `json:"keterangan"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID            int        `json:"id_history"`
+	TransactionID int        `json:"id_transaksi"`
+	OldStatus     string     `json:"status_lama"`
+	NewStatus     string     `json:"status_baru"`
+	ChangeTime    *time.Time `json:"waktu_perubahan"`
+	Description   string     `json:"keterangan"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
