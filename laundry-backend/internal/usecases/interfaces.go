@@ -90,3 +90,11 @@ type EmployeeAccessUsecase interface {
 	GetEmployeeAccessByOutletID(outletID int) ([]entities.EmployeeAccess, error)
 	AuthenticateEmployee(request entities.EmployeeLoginRequest) (*entities.EmployeeLoginResponse, error)
 }
+
+type TransactionUsecase interface {
+	GetAllTransactions() ([]entities.Transaction, error)
+	GetAllTransactionsDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	GetTransactionByID(id int) (*entities.Transaction, error)
+	GetTransactionsByOutletID(outletID int) ([]entities.Transaction, error)
+	GetTransactionDetails(transactionID int) ([]entities.TransactionDetail, error)
+}

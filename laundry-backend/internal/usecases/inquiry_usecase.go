@@ -73,21 +73,21 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 		CustomerID:    request.CustomerID,
 		OutletID:      employee.OutletID,
 		InvoiceNumber: generateInvoiceNumber(),
-		EntryDate:     t,
+		EntryDate:     &t,
 		Status:        "diterima", // Default status
 		Note:          request.Note,
 
 		CreatedAt:              t,
 		UpdatedAt:              t,
-		CreatedBy:              employee.Name,
-		UpdatedBy:              employee.Name,
-		EmployeeID:             employee.ID,
+		CreatedBy:              &employee.Name,
+		UpdatedBy:              &employee.Name,
+		EmployeeID:             &employee.ID,
 		TotalPrice:             subtotal,
 		PaymentStatus:          "belum lunas",
 		PaymentMethod:          "tunai",
-		StatusCode:             "009",
-		StatusMessage:          "INQUIRY SUCCESS",
-		PaymentReferenceNumber: "",
+		StatusCode:             stringPtr("009"),
+		StatusMessage:          stringPtr("INQUIRY SUCCESS"),
+		PaymentReferenceNumber: stringPtr(""),
 	}
 
 	// Insert transaction with transaction
@@ -101,13 +101,13 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) error {
 	detail := &entities.TransactionDetail{
 		TransactionID: id,
 		ServiceID:     request.ServicePackageID,
-		Quantity:      request.Quantity,
-		Price:         price,
-		Subtotal:      subtotal,
+		Quantity:      &request.Quantity,
+		Price:         &price,
+		Subtotal:      &subtotal,
 		CreatedAt:     t,
 		UpdatedAt:     t,
-		CreatedBy:     employee.Name,
-		UpdatedBy:     employee.Name,
+		CreatedBy:     &employee.Name,
+		UpdatedBy:     &employee.Name,
 	}
 
 	// Insert transaction detail with transaction
@@ -142,4 +142,19 @@ func generateInvoiceNumber() string {
 	random := rand.Intn(9000) + 1000
 
 	return fmt.Sprintf("INV%d%02d%02d%02d%02d%02d%d", year, month, day, hour, minute, second, random)
+}
+
+// stringPtr returns a pointer to the given string
+func stringPtr(s string) *string {
+	return &s
+}
+
+// intPtr returns a pointer to the given int
+func intPtr(i int) *int {
+	return &i
+}
+
+// timePtr returns a pointer to the given time
+func timePtr(t time.Time) *time.Time {
+	return &t
 }

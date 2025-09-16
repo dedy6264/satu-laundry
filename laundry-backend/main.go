@@ -47,6 +47,7 @@ func main() {
 	serviceRepo := repositories.NewServiceRepository(db)
 	serviceCategoryRepo := repositories.NewServiceCategoryRepository(db)
 	employeeAccessRepo := repositories.NewEmployeeAccessRepository(db)
+	transactionRepo := repositories.NewTransactionRepository(db)
 
 	// Initialize usecases
 	authUsecase := usecases.NewAuthUsecase(userRepo)
@@ -59,6 +60,7 @@ func main() {
 	serviceUsecase := usecases.NewServiceUsecase(serviceRepo)
 	serviceCategoryUsecase := usecases.NewServiceCategoryUsecase(serviceCategoryRepo)
 	employeeAccessUsecase := usecases.NewEmployeeAccessUsecase(employeeAccessRepo, "laundry-secret-key", 24*60*60) // 24 hours
+	transactionUsecase := usecases.NewTransactionUsecase(transactionRepo)
 
 	// Initialize handlers
 	authHandler := delivery.NewAuthHandler(authUsecase)
@@ -71,6 +73,7 @@ func main() {
 	serviceHandler := delivery.NewServiceHandler(serviceUsecase)
 	serviceCategoryHandler := delivery.NewServiceCategoryHandler(serviceCategoryUsecase)
 	employeeAccessHandler := delivery.NewEmployeeAccessHandler(employeeAccessUsecase, "laundry-secret-key")
+	transactionHandler := delivery.NewTransactionHandler(transactionUsecase)
 
 	// Initialize Echo instance
 	e := echo.New()
@@ -163,6 +166,12 @@ func main() {
 		api.PUT("/employee-access/:id/password", employeeAccessHandler.UpdateEmployeePassword)
 		api.DELETE("/employee-access/:id", employeeAccessHandler.DeleteEmployeeAccess)
 		api.GET("/employee-access/outlet/:outlet_id", employeeAccessHandler.GetEmployeeAccessByOutletID)
+
+		// Transaction routes
+		api.GET("/transactions", transactionHandler.GetAllTransactions)
+		api.GET("/transactions/:id", transactionHandler.GetTransactionByID)
+		api.GET("/transactions/outlet/:outlet_id", transactionHandler.GetTransactionsByOutletID)
+		api.GET("/transactions/:id/details", transactionHandler.GetTransactionDetails)
 	}
 	// Start server
 	e.Logger.Fatal(e.Start(config.Server.Address))

@@ -103,3 +103,19 @@ type EmployeeAccessRepository interface {
 	FindByOutletID(outletID int) ([]entities.EmployeeAccess, error)
 	AuthenticateEmployee(username, password string) (*entities.EmployeeAccess, error)
 }
+
+type TransactionRepository interface {
+	FindAll() ([]entities.Transaction, error)
+	FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Transaction, int, error)
+	FindByID(id int) (*entities.Transaction, error)
+	FindByOutletID(outletID int) ([]entities.Transaction, error)
+	FindDetailsByTransactionID(transactionID int) ([]entities.TransactionDetail, error)
+}
+
+type TransactionUsecase interface {
+	GetAllTransactions() ([]entities.Transaction, error)
+	GetAllTransactionsDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	GetTransactionByID(id int) (*entities.Transaction, error)
+	GetTransactionsByOutletID(outletID int) ([]entities.Transaction, error)
+	GetTransactionDetails(transactionID int) ([]entities.TransactionDetail, error)
+}
