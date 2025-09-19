@@ -286,6 +286,22 @@ CREATE TABLE IF NOT EXISTS employee_access (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS metode_pembayaran (
+    id SERIAL PRIMARY KEY,
+    nama_metode VARCHAR(100) NOT NULL,       -- nama yang ditampilkan
+    url VARCHAR(255),                        -- endpoint/payment gateway
+    s_key TEXT,                              -- simpan terenkripsi/opsional
+    m_key TEXT,
+    merchant_fee DECIMAL(10,2) DEFAULT 0.00,
+    admin_fee DECIMAL(10,2) DEFAULT 0.00,
+    status VARCHAR(20) DEFAULT 'active',     -- active/inactive
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100)
+);
+
 
 
 -- Index untuk optimasi query

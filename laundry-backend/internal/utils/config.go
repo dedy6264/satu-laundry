@@ -63,7 +63,7 @@ func LoadConfig() (*Config, error) {
 	writeTimeout, _ := strconv.Atoi(GetEnv("SERVER_WRITE_TIMEOUT"))
 	config := &Config{
 		Server: ServerConfig{
-			Address:      GetEnv("SERVER_ADDRESS"),
+			Address:      GetEnv("APP_PORT"),
 			ReadTimeout:  readTimeout,
 			WriteTimeout: writeTimeout,
 		},

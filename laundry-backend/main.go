@@ -177,7 +177,8 @@ func main() {
 		api.POST("/transactions/payment-callback", transactionHandler.ProcessPaymentCallback)
 	}
 	// Start server
-	e.Logger.Fatal(e.Start(config.Server.Address))
+	// e.Logger.Fatal(e.Start(config.Server.Address))
+	e.Logger.Fatal(e.Start(":" + config.Server.Address))
 }
 
 func initDB(config *utils.Config) (*sql.DB, error) {
