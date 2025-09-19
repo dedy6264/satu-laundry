@@ -55,15 +55,15 @@ type InquiryRequest struct {
 	ServicePackageID int     `json:"id_layanan" validare:"required"`
 	CustomerID       int     `json:"id_pelanggan" validare:"required"`
 	OutletID         int     `json:"id_outlet"`
-	EmployeeID       int     `json:"id_pegawai"`
+	UserID           int     `json:"id_user"`
 	Quantity         float64 `json:"jumlah" validare:"required"`
 	Note             string  `json:"catatan"`
 }
 
 type InquiryResponse struct {
-	Transaction        Transaction        `json:"transaksi"`
-	TransactionDetails []TransactionDetail `json:"detail_transaksi"`
-	Payment            Payment            `json:"pembayaran"`
+	Transaction        Transaction              `json:"transaksi"`
+	TransactionDetails []TransactionDetail      `json:"detail_transaksi"`
+	Payment            Payment                  `json:"pembayaran"`
 	History            HistoryStatusTransaction `json:"history_status_transaksi"`
 }
 

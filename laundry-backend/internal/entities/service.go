@@ -7,6 +7,8 @@ import (
 type Service struct {
 	BrandID     int       `json:"brand_id" `
 	ID          int       `json:"id"`
+
+
 	CategoryID  int       `json:"kategori_id"`
 	Name        string    `json:"nama_layanan"`
 	Description string    `json:"deskripsi"`

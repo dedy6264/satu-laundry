@@ -115,7 +115,7 @@ func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transact
 		transaction.EntryDate,
 		transaction.Status,
 		transaction.Note,
-		transaction.EmployeeID,
+		transaction.UserID,
 		transaction.CompletionDate,
 		transaction.PickupDate,
 		transaction.TotalPrice,

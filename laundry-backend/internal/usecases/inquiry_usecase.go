@@ -7,23 +7,63 @@ import (
 	"laundry-backend/internal/repositories"
 	"math/rand"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type inquiryUsecase struct {
-	inquiryRepo repositories.InquiryRepository
+	inquiryRepo    repositories.InquiryRepository
+	userAccessRepo repositories.UserAccessRepository
+	cabangRepo     repositories.CabangRepository
+	outletRepo     repositories.OutletRepository
+	employeeRepo   repositories.EmployeeRepository
 }
 
-func NewInquiryUsecase(inquiryRepo repositories.InquiryRepository) InquiryUsecase {
+func NewInquiryUsecase(inquiryRepo repositories.InquiryRepository, userAccessRepo repositories.UserAccessRepository,
+	cabangRepo repositories.CabangRepository,
+	outletRepo repositories.OutletRepository,
+	employeeRepo repositories.EmployeeRepository) InquiryUsecase {
 	return &inquiryUsecase{
-		inquiryRepo: inquiryRepo,
+		inquiryRepo:    inquiryRepo,
+		userAccessRepo: userAccessRepo,
+		cabangRepo:     cabangRepo,
+		outletRepo:     outletRepo,
+		employeeRepo:   employeeRepo,
 	}
 }
 
-func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) (*entities.InquiryResponse, error) {
+func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims jwt.MapClaims) (response *entities.InquiryResponse, err error) {
 	var (
-		t = time.Now()
+		t  = time.Now()
+		id int
 		// tdb = t.Local().Format(time.RFC3339)
+		// cabang   *entities.Cabang cabang ga bisa dipake buat trx karena harus ada outlet
+		outlet   *entities.Outlet
+		employee *entities.Employee
 	)
+	reference_id := int(claims["reference_id"].(float64))
+	reference_level := claims["reference_level"].(string)
+	// role := claims["role"].(string)
+	switch reference_level {
+	// case "cabang":
+	// 	cabang, err = u.cabangRepo.FindByID(reference_id)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	id = cabang.ID
+	case "outlet":
+		outlet, err = u.outletRepo.FindByID(reference_id)
+		if err != nil {
+			return nil, err
+		}
+		id = outlet.ID
+	default: //karyawan
+		employee, err = u.employeeRepo.FindByID(reference_id)
+		if err != nil {
+			return nil, err
+		}
+		id = employee.ID
+	}
 	// Validate service package
 	valid, err := u.inquiryRepo.ValidateServicePackage(request.ServicePackageID)
 	if err != nil {
@@ -33,14 +73,12 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) (*entit
 		return nil, errors.New("invalid service package")
 	}
 
-	// Validate employee and get employee data
-
-	employee, err := u.inquiryRepo.ValidateEmployee(request.EmployeeID)
+	userAccess, err := u.userAccessRepo.FindByID(request.UserID)
 	if err != nil {
 		return nil, err
 	}
-	if employee == nil {
-		return nil, errors.New("invalid employee")
+	if userAccess == nil {
+		return nil, errors.New("invalid userAccess")
 	}
 
 	// Validate customer
@@ -68,25 +106,26 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) (*entit
 	}
 
 	// Create transaction entity
-	// Use employee's outlet ID instead of request.OutletID
+	if request.OutletID == 0 {
+		request.OutletID = employee.OutletID
+	}
 	transaction := &entities.Transaction{
 		CustomerID:    request.CustomerID,
-		OutletID:      employee.OutletID,
+		OutletID:      request.OutletID,
 		InvoiceNumber: generateInvoiceNumber(),
 		EntryDate:     &t,
 		Status:        "diterima", // Default status
 		Note:          request.Note,
-
-		CreatedAt:  t,
-		UpdatedAt:  t,
-		CreatedBy:  &employee.Name,
-		UpdatedBy:  &employee.Name,
-		EmployeeID: &employee.ID,
-		TotalPrice: subtotal,
+		CreatedAt:     t,
+		UpdatedAt:     t,
+		CreatedBy:     &userAccess.Username,
+		UpdatedBy:     &userAccess.Username,
+		UserID:        &userAccess.ID,
+		TotalPrice:    subtotal,
 	}
 
 	// Insert transaction with transaction
-	id, err := u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
+	id, err = u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("failed to insert transaction: %w", err)
@@ -154,7 +193,7 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest) (*entit
 	}
 
 	// Prepare the response
-	response := &entities.InquiryResponse{
+	response = &entities.InquiryResponse{
 		Transaction:        *transaction,
 		TransactionDetails: []entities.TransactionDetail{*detail},
 		Payment:            *payment,

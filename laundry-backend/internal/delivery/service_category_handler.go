@@ -26,11 +26,14 @@ func (h *ServiceCategoryHandler) CreateServiceCategory(c echo.Context) error {
 		request entities.CreateServiceCategoryRequest
 		svcName = "CreateServiceCategory"
 	)
+
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Failed to bind request", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
+
 	request.Name = strings.ToUpper(request.Name)
+
 	if err := h.serviceCategoryUsecase.CreateServiceCategory(request); err != nil {
 		utils.LoggMsg(svcName, "Failed to create service category", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to create service category", err.Error())
@@ -43,6 +46,7 @@ func (h *ServiceCategoryHandler) GetServiceCategoryByID(c echo.Context) error {
 	var (
 		svcName = "GetServiceCategoryByID"
 	)
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utils.LoggMsg(svcName, "Invalid service category ID", err)
@@ -68,6 +72,7 @@ func (h *ServiceCategoryHandler) GetAllServiceCategories(c echo.Context) error {
 		svcName = "GetAllServiceCategories"
 		request entities.DataTablesRequest
 	)
+
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Failed to bind request", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
@@ -87,6 +92,7 @@ func (h *ServiceCategoryHandler) UpdateServiceCategory(c echo.Context) error {
 		svcName = "UpdateServiceCategory"
 		request entities.UpdateServiceCategoryRequest
 	)
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utils.LoggMsg(svcName, "Invalid service category ID", err)
@@ -97,7 +103,9 @@ func (h *ServiceCategoryHandler) UpdateServiceCategory(c echo.Context) error {
 		utils.LoggMsg(svcName, "Invalid request format", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
+
 	request.Name = strings.ToUpper(request.Name)
+
 	if err := h.serviceCategoryUsecase.UpdateServiceCategory(id, request); err != nil {
 		utils.LoggMsg(svcName, "Failed to update service category", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to update service category", err.Error())
@@ -110,6 +118,7 @@ func (h *ServiceCategoryHandler) DeleteServiceCategory(c echo.Context) error {
 	var (
 		svcName = "DeleteServiceCategory"
 	)
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utils.LoggMsg(svcName, "Invalid service category ID", err)

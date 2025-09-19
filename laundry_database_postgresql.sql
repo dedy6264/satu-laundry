@@ -143,7 +143,7 @@ CREATE TABLE transaksi (
     id_transaksi SERIAL PRIMARY KEY,
     id_pelanggan INTEGER NOT NULL,
     id_outlet INTEGER NOT NULL,
-    id_pegawai INTEGER,
+    id_access INTEGER,
     nomor_invoice VARCHAR(50) UNIQUE,
     tanggal_masuk TIMESTAMP,
     tanggal_selesai TIMESTAMP,
@@ -168,7 +168,7 @@ CREATE TABLE transaksi (
     updated_by VARCHAR(100),
     FOREIGN KEY (id_pelanggan) REFERENCES pelanggan(id_pelanggan),
     FOREIGN KEY (id_outlet) REFERENCES outlet(id_outlet),
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai)
+    FOREIGN KEY (id_access) REFERENCES user_access(id_access)
 );
 
 -- Tabel Detail Transaksi
@@ -274,17 +274,17 @@ CREATE TABLE IF NOT EXISTS pembayaran (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_transaksi) REFERENCES transaksi(id_transaksi) ON DELETE CASCADE
 );
-CREATE TABLE IF NOT EXISTS employee_access (
+CREATE TABLE IF NOT EXISTS user_access (
     id_access SERIAL PRIMARY KEY,
-    id_pegawai INTEGER NOT NULL,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(50) DEFAULT 'karyawan',
     is_active BOOLEAN DEFAULT true,
     last_login TIMESTAMP,
+    reference_level VARCHAR(10),
+    reference_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pegawai) REFERENCES pegawai(id_pegawai) ON DELETE CASCADE
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS metode_pembayaran (
     id SERIAL PRIMARY KEY,
@@ -316,25 +316,24 @@ CREATE INDEX idx_paket_brand ON paket_layanan(id_brand);
 CREATE INDEX idx_layanan_kategori ON paket_layanan(id_kategori);
 CREATE INDEX idx_pembayaran_transaksi ON pembayaran(id_transaksi);
 -- Add indexes for faster queries
-CREATE INDEX IF NOT EXISTS idx_employee_access_username ON employee_access(username);
-CREATE INDEX IF NOT EXISTS idx_employee_access_pegawai ON employee_access(id_pegawai);
-CREATE INDEX IF NOT EXISTS idx_employee_access_active ON employee_access(is_active);
+CREATE INDEX IF NOT EXISTS idx_employee_access_username ON user_access(username);
+CREATE INDEX IF NOT EXISTS idx_employee_access_active ON user_access(is_active);
 
 
 -- Function untuk mengenerate nomor invoice otomatis
 CREATE OR REPLACE FUNCTION generate_invoice_number()
-RETURNS TEXT AS $$
+RETURNS TEXT AS $
 BEGIN
     RETURN 'INV' || TO_CHAR(NOW(), 'YYYYMMDD') || LPAD(NEXTVAL('invoice_seq')::TEXT, 6, '0');
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 -- Sequence untuk nomor invoice
 CREATE SEQUENCE IF NOT EXISTS invoice_seq START 1;
 
 -- Trigger function untuk mencatat history status transaksi
 CREATE OR REPLACE FUNCTION trigger_history_status_transaksi()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $
 BEGIN
     -- Mencatat history jika status transaksi berubah
     IF OLD.status_transaksi IS DISTINCT FROM NEW.status_transaksi THEN
@@ -349,7 +348,7 @@ BEGIN
     
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 -- Trigger untuk transaksi
 CREATE TRIGGER trigger_transaksi_update
@@ -368,7 +367,7 @@ CREATE OR REPLACE FUNCTION sp_daftar_pelanggan_baru(
     p_id_outlet INTEGER
 )
 RETURNS TABLE(id_pelanggan INTEGER, status VARCHAR(50))
-AS $$
+AS $
 DECLARE
     v_count INTEGER;
     v_id_pelanggan INTEGER;
@@ -402,12 +401,12 @@ BEGIN
     
     RETURN QUERY SELECT v_id_pelanggan, v_status;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 -- Function untuk mengecek status pelanggan
 CREATE OR REPLACE FUNCTION sp_cek_status_pelanggan(p_nomor_hp VARCHAR(20))
 RETURNS TABLE(id_pelanggan INTEGER, status VARCHAR(50), nama_lengkap VARCHAR(100))
-AS $$
+AS $
 DECLARE
     v_count INTEGER;
     v_id_pelanggan INTEGER;
@@ -429,7 +428,7 @@ BEGIN
     
     RETURN QUERY SELECT v_id_pelanggan, v_status, v_nama_lengkap;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 -- Function untuk mencatat presensi pegawai
 CREATE OR REPLACE FUNCTION sp_catat_presensi(
@@ -442,7 +441,7 @@ CREATE OR REPLACE FUNCTION sp_catat_presensi(
     p_keterangan TEXT
 )
 RETURNS VARCHAR(50)
-AS $$
+AS $
 DECLARE
     v_id_pegawai INTEGER;
     v_count INTEGER;
@@ -477,7 +476,7 @@ BEGIN
     
     RETURN v_status;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 -- Function untuk mencatat waktu keluar pegawai
 CREATE OR REPLACE FUNCTION sp_catat_keluar(
@@ -487,7 +486,7 @@ CREATE OR REPLACE FUNCTION sp_catat_keluar(
     p_foto_keluar VARCHAR(255)
 )
 RETURNS VARCHAR(50)
-AS $$
+AS $
 DECLARE
     v_id_pegawai INTEGER;
     v_count INTEGER;
@@ -519,7 +518,7 @@ BEGIN
     
     RETURN v_status;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 -- View untuk laporan transaksi
 CREATE VIEW v_laporan_transaksi AS

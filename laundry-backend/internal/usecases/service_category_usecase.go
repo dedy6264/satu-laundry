@@ -33,34 +33,43 @@ func (u *serviceCategoryUsecase) GetAllServiceCategories() ([]entities.ServiceCa
 }
 
 func (u *serviceCategoryUsecase) GetAllServiceCategoriesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// Default ordering
-	orderBy := "id_kategori"
-	orderDir := "asc"
-
-	// If ordering is specified
-	if len(request.Order) > 0 && len(request.Columns) > request.Order[0].Column {
+	// Get order column
+	var orderBy string
+	var orderDir string
+	if len(request.Order) > 0 && request.Order[0].Column < len(request.Columns) {
 		orderBy = request.Columns[request.Order[0].Column].Data
 		orderDir = request.Order[0].Dir
 	}
 
-	// Get data with pagination
-	categories, recordsTotal, recordsFiltered, err := u.serviceCategoryRepo.FindAllWithPagination(
+	// Map column names to database column names
+	columnMap := map[string]string{
+		"id":          "id_kategori",
+		"nama_kategori": "nama_kategori",
+		"deskripsi":   "deskripsi",
+		"created_at":  "created_at",
+	}
+
+	if dbColumn, exists := columnMap[orderBy]; exists {
+		orderBy = dbColumn
+	} else {
+		orderBy = "id_kategori"
+	}
+
+	categories, totalCount, _, err := u.serviceCategoryRepo.FindAllWithPagination(
 		request.Length,
 		request.Start,
 		request.Search.Value,
 		orderBy,
 		orderDir,
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
-	// Create response
 	response := &entities.DataTablesResponse{
 		Draw:            request.Draw,
-		RecordsTotal:    recordsTotal,
-		RecordsFiltered: recordsFiltered,
+		RecordsTotal:    totalCount,
+		RecordsFiltered: totalCount,
 		Data:            categories,
 	}
 
@@ -68,17 +77,18 @@ func (u *serviceCategoryUsecase) GetAllServiceCategoriesDataTables(request entit
 }
 
 func (u *serviceCategoryUsecase) UpdateServiceCategory(id int, request entities.UpdateServiceCategoryRequest) error {
-	category, err := u.serviceCategoryRepo.FindByID(id)
+	// First get the existing category
+	existingCategory, err := u.serviceCategoryRepo.FindByID(id)
 	if err != nil {
 		return err
 	}
 
-	if category == nil {
-		return nil // Category not found
+	category := &entities.ServiceCategory{
+		ID:          id,
+		Name:        request.Name,
+		Description: request.Description,
+		CreatedAt:   existingCategory.CreatedAt,
 	}
-
-	category.Name = request.Name
-	category.Description = request.Description
 
 	return u.serviceCategoryRepo.Update(category)
 }

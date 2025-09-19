@@ -2,6 +2,8 @@ package usecases
 
 import (
 	"laundry-backend/internal/entities"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type AuthUsecase interface {
@@ -38,7 +40,7 @@ type OutletUsecase interface {
 }
 
 type InquiryUsecase interface {
-	ProcessInquiry(request entities.InquiryRequest) (*entities.InquiryResponse, error)
+	ProcessInquiry(request entities.InquiryRequest, claims jwt.MapClaims) (*entities.InquiryResponse, error)
 }
 
 type EmployeeUsecase interface {
@@ -79,16 +81,15 @@ type ServiceCategoryUsecase interface {
 	DeleteServiceCategory(id int) error
 }
 
-type EmployeeAccessUsecase interface {
-	CreateEmployeeAccess(request entities.CreateEmployeeAccessRequest) error
-	GetEmployeeAccessByID(id int) (*entities.EmployeeAccess, error)
-	GetAllEmployeeAccess() ([]entities.EmployeeAccess, error)
-	GetAllEmployeeAccessDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
-	UpdateEmployeeAccess(id int, request entities.UpdateEmployeeAccessRequest) error
-	UpdateEmployeePassword(id int, request entities.UpdateEmployeePasswordRequest) error
-	DeleteEmployeeAccess(id int) error
-	GetEmployeeAccessByOutletID(outletID int) ([]entities.EmployeeAccess, error)
-	AuthenticateEmployee(request entities.EmployeeLoginRequest) (*entities.EmployeeLoginResponse, error)
+type UserAccessUsecase interface {
+	CreateUserAccess(request entities.CreateUserAccessRequest) error
+	GetUserAccessByID(id int) (*entities.UserAccess, error)
+	GetAllUserAccess() ([]entities.UserAccess, error)
+	GetAllUserAccessDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	UpdateUserAccess(id int, request entities.UpdateUserAccessRequest) error
+	UpdateUserPassword(id int, request entities.UpdateUserPasswordRequest) error
+	DeleteUserAccess(id int) error
+	AuthenticateUser(request entities.UserLoginRequest) (*entities.UserLoginResponse, error)
 }
 
 type TransactionUsecase interface {

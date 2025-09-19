@@ -69,7 +69,7 @@ type Transaction struct {
 	ID             int        `json:"id"`
 	CustomerID     int        `json:"id_pelanggan"`
 	OutletID       int        `json:"id_outlet"`
-	EmployeeID     *int       `json:"id_pegawai"`
+	UserID         *int       `json:"id_access"`
 	InvoiceNumber  string     `json:"nomor_invoice"`
 	EntryDate      *time.Time `json:"tanggal_masuk"`
 	CompletionDate *time.Time `json:"tanggal_selesai"`

@@ -35,13 +35,8 @@ func (h *InquiryHandler) ProcessInquiry(c echo.Context) error {
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
 
-	request.EmployeeID = int(claims["employee_id"].(float64)) // JSON number → float64 → int
-	// role := claims["role"].(string)
-	// if role != "employee" && role != "kasir" {
-	// 	utils.LoggMsg(svcName, fmt.Sprintf("Unauthorized role: %s", role), nil)
-	// 	return ErrorResponse(c, http.StatusForbidden, "Unauthorized role", "Only employees can process inquiries")
-	// }
-	response, err := h.inquiryUsecase.ProcessInquiry(request)
+	request.UserID = int(claims["user_id"].(float64)) // JSON number → float64 → int
+	response, err := h.inquiryUsecase.ProcessInquiry(request, claims)
 	if err != nil {
 		fmt.Printf("Failed to process inquiry: %v\n", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Failed to process inquiry", err.Error())

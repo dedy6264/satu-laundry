@@ -108,10 +108,20 @@ CREATE TABLE pegawai (
     FOREIGN KEY (id_outlet) REFERENCES outlet(id_outlet)
 );
 
+-- Tabel Kategori Layanan
+CREATE TABLE IF NOT EXISTS kategori_layanan (
+    id_kategori INT PRIMARY KEY AUTO_INCREMENT,
+    nama_kategori VARCHAR(100) NOT NULL,
+    deskripsi TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- Tabel Paket Layanan
 CREATE TABLE paket_layanan (
-    id_paket INT PRIMARY KEY AUTO_INCREMENT,
+    id_kategori INT NOT NULL,
     id_brand INT NOT NULL,
+    id_paket INT PRIMARY KEY AUTO_INCREMENT,
     nama_paket VARCHAR(100) NOT NULL,
     deskripsi TEXT,
     harga_per_kg DECIMAL(10, 2),
@@ -120,7 +130,8 @@ CREATE TABLE paket_layanan (
     kategori ENUM('kiloan', 'satuan') DEFAULT 'kiloan',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_brand) REFERENCES brand(id_brand)
+    FOREIGN KEY (id_brand) REFERENCES brand(id_brand),
+    FOREIGN KEY (id_kategori) REFERENCES kategori_layanan(id_kategori)
 );
 
 -- Tabel Transaksi
@@ -230,6 +241,7 @@ CREATE INDEX idx_pegawai_outlet ON pegawai(id_outlet);
 CREATE INDEX idx_outlet_cabang ON outlet(id_cabang);
 CREATE INDEX idx_cabang_brand ON cabang(id_brand);
 CREATE INDEX idx_paket_brand ON paket_layanan(id_brand);
+CREATE INDEX idx_paket_kategori ON paket_layanan(id_kategori);
 
 -- Trigger untuk mengenerate nomor invoice otomatis
 DELIMITER //

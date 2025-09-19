@@ -22,7 +22,7 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 		t.id_transaksi,
 		t.id_pelanggan,
 		t.id_outlet,
-		t.id_pegawai,
+		t.id_access,
 		t.nomor_invoice,			 
 		t.tanggal_masuk,
 		t.tanggal_selesai,
@@ -48,7 +48,7 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 	var transactions []entities.Transaction
 	for rows.Next() {
 		var transaction entities.Transaction
-		var employeeID sql.NullInt64
+		var userID sql.NullInt64
 		var entryDate, completionDate, pickupDate sql.NullTime
 		var createdBy, updatedBy sql.NullString
 
@@ -56,7 +56,7 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 			&transaction.ID,
 			&transaction.CustomerID,
 			&transaction.OutletID,
-			&employeeID,
+			&userID,
 			&transaction.InvoiceNumber,
 			&entryDate,
 			&completionDate,
@@ -76,9 +76,9 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 		}
 
 		// Handle nullable fields
-		if employeeID.Valid {
-			val := int(employeeID.Int64)
-			transaction.EmployeeID = &val
+		if userID.Valid {
+			val := int(userID.Int64)
+			transaction.UserID = &val
 		}
 		if entryDate.Valid {
 			transaction.EntryDate = &entryDate.Time
@@ -117,7 +117,7 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 		t.id_transaksi,
 		t.id_pelanggan,
 		t.id_outlet,
-		t.id_pegawai,
+		t.id_access,
 		t.nomor_invoice,			 
 		t.tanggal_masuk,
 		t.tanggal_selesai,
@@ -172,7 +172,7 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 	var transactions []entities.Transaction
 	for rows.Next() {
 		var transaction entities.Transaction
-		var employeeID sql.NullInt64
+		var userID sql.NullInt64
 		var entryDate, completionDate, pickupDate sql.NullTime
 		var createdBy, updatedBy sql.NullString
 
@@ -180,7 +180,7 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 			&transaction.ID,
 			&transaction.CustomerID,
 			&transaction.OutletID,
-			&employeeID,
+			&userID,
 			&transaction.InvoiceNumber,
 			&entryDate,
 			&completionDate,
@@ -200,9 +200,9 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 		}
 
 		// Handle nullable fields
-		if employeeID.Valid {
-			val := int(employeeID.Int64)
-			transaction.EmployeeID = &val
+		if userID.Valid {
+			val := int(userID.Int64)
+			transaction.UserID = &val
 		}
 		if entryDate.Valid {
 			transaction.EntryDate = &entryDate.Time
@@ -232,7 +232,7 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 			t.id_transaksi,
 		t.id_pelanggan,
 		t.id_outlet,
-		t.id_pegawai,
+		t.id_access,
 		t.nomor_invoice,			 
 		t.tanggal_masuk,
 		t.tanggal_selesai,
@@ -250,7 +250,7 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 		WHERE t.id_transaksi = $1`
 
 	var transaction entities.Transaction
-	var employeeID sql.NullInt64
+	var userID sql.NullInt64
 	var entryDate, completionDate, pickupDate sql.NullTime
 	var createdBy, updatedBy sql.NullString
 
@@ -258,7 +258,7 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 		&transaction.ID,
 		&transaction.CustomerID,
 		&transaction.OutletID,
-		&employeeID,
+		&userID,
 		&transaction.InvoiceNumber,
 		&entryDate,
 		&completionDate,
@@ -281,9 +281,9 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 	}
 
 	// Handle nullable fields
-	if employeeID.Valid {
-		val := int(employeeID.Int64)
-		transaction.EmployeeID = &val
+	if userID.Valid {
+		val := int(userID.Int64)
+		transaction.UserID = &val
 	}
 	if entryDate.Valid {
 		transaction.EntryDate = &entryDate.Time
@@ -311,7 +311,7 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 			t.id_transaksi,
 		t.id_pelanggan,
 		t.id_outlet,
-		t.id_pegawai,
+		t.id_access,
 		t.nomor_invoice,			 
 		t.tanggal_masuk,
 		t.tanggal_selesai,
@@ -338,7 +338,7 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 	var transactions []entities.Transaction
 	for rows.Next() {
 		var transaction entities.Transaction
-		var employeeID sql.NullInt64
+		var userID sql.NullInt64
 		var entryDate, completionDate, pickupDate sql.NullTime
 		var createdBy, updatedBy sql.NullString
 
@@ -346,7 +346,7 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 			&transaction.ID,
 			&transaction.CustomerID,
 			&transaction.OutletID,
-			&employeeID,
+			&userID,
 			&transaction.InvoiceNumber,
 			&entryDate,
 			&completionDate,
@@ -366,9 +366,9 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 		}
 
 		// Handle nullable fields
-		if employeeID.Valid {
-			val := int(employeeID.Int64)
-			transaction.EmployeeID = &val
+		if userID.Valid {
+			val := int(userID.Int64)
+			transaction.UserID = &val
 		}
 		if entryDate.Valid {
 			transaction.EntryDate = &entryDate.Time
