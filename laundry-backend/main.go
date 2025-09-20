@@ -48,6 +48,7 @@ func main() {
 	serviceCategoryRepo := repositories.NewServiceCategoryRepository(db)
 	userAccessRepo := repositories.NewUserAccessRepository(db)
 	transactionRepo := repositories.NewTransactionRepository(db)
+	paymentMethodRepo := repositories.NewPaymentMethodRepository(db)
 
 	// Initialize usecases
 	authUsecase := usecases.NewAuthUsecase(userRepo)
@@ -56,7 +57,7 @@ func main() {
 	outletUsecase := usecases.NewOutletUsecase(outletRepo)
 	inquiryUsecase := usecases.NewInquiryUsecase(inquiryRepo, userAccessRepo, cabangRepo,
 		outletRepo,
-		employeeRepo)
+		employeeRepo, paymentMethodRepo, serviceRepo)
 	employeeUsecase := usecases.NewEmployeeUsecase(employeeRepo)
 	customerUsecase := usecases.NewCustomerUsecase(customerRepo)
 	serviceUsecase := usecases.NewServiceUsecase(serviceRepo)
@@ -70,6 +71,7 @@ func main() {
 		24*60*60,
 	) // 24 hours
 	transactionUsecase := usecases.NewTransactionUsecase(transactionRepo)
+	paymentMethodUsecase := usecases.NewPaymentMethodUsecase(paymentMethodRepo)
 
 	// Initialize handlers
 	authHandler := delivery.NewAuthHandler(authUsecase)
@@ -83,6 +85,7 @@ func main() {
 	serviceCategoryHandler := delivery.NewServiceCategoryHandler(serviceCategoryUsecase)
 	userAccessHandler := delivery.NewUserAccessHandler(userAccessUsecase, "laundry-secret-key")
 	transactionHandler := delivery.NewTransactionHandler(transactionUsecase)
+	paymentMethodHandler := delivery.NewPaymentMethodHandler(paymentMethodUsecase)
 
 	// Initialize Echo instance
 	e := echo.New()
@@ -105,27 +108,29 @@ func main() {
 	// Auth routes
 	e.POST("/api/v1/login", authHandler.Login)
 	e.POST("/api/v1/employee/login", userAccessHandler.UserLogin)
+	// administrator
+	{
+		// Brand routes
+		e.POST("/brands", brandHandler.CreateBrand)
+		e.GET("/brands/:id", brandHandler.GetBrandByID)
+		e.GET("/brands", brandHandler.GetAllBrands)
+		e.PUT("/brands/:id", brandHandler.UpdateBrand)
+		e.DELETE("/brands/:id", brandHandler.DeleteBrand)
+
+		// Cabang routes
+		e.POST("/cabangs", cabangHandler.CreateCabang)
+		e.GET("/cabangs/:id", cabangHandler.GetCabangByID)
+		e.GET("/cabangs/brand/:brand_id", cabangHandler.GetCabangsByBrandID)
+		e.GET("/cabangs", cabangHandler.GetAllCabangs)
+		e.PUT("/cabangs/:id", cabangHandler.UpdateCabang)
+		e.DELETE("/cabangs/:id", cabangHandler.DeleteCabang)
+
+	}
 
 	// Protected routes
 	api := e.Group("/api/v1")
 	{
 		api.Use(echoMiddleware.JWT([]byte("laundry-secret-key")))
-
-		// Brand routes
-		api.POST("/brands", brandHandler.CreateBrand)
-		api.GET("/brands/:id", brandHandler.GetBrandByID)
-		api.GET("/brands", brandHandler.GetAllBrands)
-		api.PUT("/brands/:id", brandHandler.UpdateBrand)
-		api.DELETE("/brands/:id", brandHandler.DeleteBrand)
-
-		// Cabang routes
-		api.POST("/cabangs", cabangHandler.CreateCabang)
-		api.GET("/cabangs/:id", cabangHandler.GetCabangByID)
-		api.GET("/cabangs/brand/:brand_id", cabangHandler.GetCabangsByBrandID)
-		api.GET("/cabangs", cabangHandler.GetAllCabangs)
-		api.PUT("/cabangs/:id", cabangHandler.UpdateCabang)
-		api.DELETE("/cabangs/:id", cabangHandler.DeleteCabang)
-
 		// Outlet routes
 		api.POST("/outlets", outletHandler.CreateOutlet)
 		api.GET("/outlets/:id", outletHandler.GetOutletByID)
@@ -183,6 +188,13 @@ func main() {
 		api.PUT("/transactions/:id/status", transactionHandler.UpdateTransactionStatus)
 		api.PUT("/transactions/:id/payment-status", transactionHandler.UpdatePaymentStatus)
 		api.POST("/transactions/payment-callback", transactionHandler.ProcessPaymentCallback)
+
+		// Payment Method routes
+		api.POST("/payment-methods", paymentMethodHandler.CreatePaymentMethod)
+		api.GET("/payment-methods/:id", paymentMethodHandler.GetPaymentMethodByID)
+		api.GET("/payment-methods", paymentMethodHandler.GetAllPaymentMethods)
+		api.PUT("/payment-methods/:id", paymentMethodHandler.UpdatePaymentMethod)
+		api.DELETE("/payment-methods/:id", paymentMethodHandler.DeletePaymentMethod)
 	}
 	// Start server
 	// e.Logger.Fatal(e.Start(config.Server.Address))

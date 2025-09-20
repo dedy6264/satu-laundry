@@ -26,21 +26,21 @@ func (u *outletUsecase) CreateOutlet(request entities.RegisterOutletRequest) err
 	}
 
 	outlet := &entities.Outlet{
-		CabangID:    request.CabangID,
-		Name:        request.Name,
-		Address:     request.Address,
-		City:        request.City,
-		Province:    request.Province,
-		PostalCode:  request.PostalCode,
-		Phone:       request.Phone,
-		Email:       request.Email,
-		Latitude:    latPtr,
-		Longitude:   lonPtr,
-		OpenTime:    request.OpenTime,
-		CloseTime:   request.CloseTime,
-		PICName:     request.PICName,
-		PICEmail:    request.PICEmail,
-		PICTelepon:  request.PICTelepon,
+		CabangID:   request.CabangID,
+		Name:       request.Name,
+		Address:    request.Address,
+		City:       request.City,
+		Province:   request.Province,
+		PostalCode: request.PostalCode,
+		Phone:      request.Phone,
+		Email:      request.Email,
+		Latitude:   latPtr,
+		Longitude:  lonPtr,
+		OpenTime:   request.OpenTime,
+		CloseTime:  request.CloseTime,
+		PICName:    request.PICName,
+		PICEmail:   request.PICEmail,
+		PICTelepon: request.PICTelepon,
 	}
 
 	return u.outletRepo.Create(outlet)
@@ -55,20 +55,20 @@ func (u *outletUsecase) GetOutletsByCabangID(cabangID int) ([]entities.Outlet, e
 }
 
 func (u *outletUsecase) GetAllOutlets() ([]entities.Outlet, error) {
-	return u.outletRepo.FindAll()
+	return u.outletRepo.FindAll(entities.Outlet{})
 }
 
 func (u *outletUsecase) GetAllOutletsDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
 	// Default ordering
 	orderBy := "id"
 	orderDir := "asc"
-	
+
 	// If ordering is specified
 	if len(request.Order) > 0 && len(request.Columns) > request.Order[0].Column {
 		orderBy = request.Columns[request.Order[0].Column].Data
 		orderDir = request.Order[0].Dir
 	}
-	
+
 	// Get data with pagination
 	outlets, recordsTotal, recordsFiltered, err := u.outletRepo.FindAllWithPagination(
 		request.Length,
@@ -77,11 +77,11 @@ func (u *outletUsecase) GetAllOutletsDataTables(request entities.DataTablesReque
 		orderBy,
 		orderDir,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create response
 	response := &entities.DataTablesResponse{
 		Draw:            request.Draw,
@@ -89,7 +89,7 @@ func (u *outletUsecase) GetAllOutletsDataTables(request entities.DataTablesReque
 		RecordsFiltered: recordsFiltered,
 		Data:            outlets,
 	}
-	
+
 	return response, nil
 }
 

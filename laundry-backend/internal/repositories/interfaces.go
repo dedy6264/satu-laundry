@@ -33,17 +33,17 @@ type OutletRepository interface {
 	Create(outlet *entities.Outlet) error
 	FindByID(id int) (*entities.Outlet, error)
 	FindByCabangID(cabangID int) ([]entities.Outlet, error)
-	FindAll() ([]entities.Outlet, error)
+	FindAll(request entities.Outlet) ([]entities.Outlet, error)
 	FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Outlet, int, int, error)
 	Update(outlet *entities.Outlet) error
 	Delete(id int) error
 }
 
 type InquiryRepository interface {
-	ValidateServicePackage(id int) (bool, error)
+	// ValidateServicePackage(id int) (bool, error)
 	ValidateEmployee(id int) (*entities.Employee, error)
 	ValidateCustomer(id int) (bool, error)
-	GetServicePackagePrice(id int) (float64, error)
+	// GetServicePackagePrice(id int) (float64, error)
 	// Transaction methods
 	BeginTransaction() (*sql.Tx, error)
 	InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) (int, error)

@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"database/sql"
-	"fmt"
 	"laundry-backend/internal/entities"
 	"laundry-backend/internal/utils"
 	"time"
@@ -18,19 +17,6 @@ func NewInquiryRepository(db *sql.DB, employeeRepo EmployeeRepository) InquiryRe
 		db:           db,
 		employeeRepo: employeeRepo,
 	}
-}
-
-func (r *inquiryPostgresRepository) ValidateServicePackage(id int) (bool, error) {
-	query := `SELECT COUNT(*) FROM paket_layanan WHERE id_layanan = $1`
-	row := r.db.QueryRow(query, id)
-
-	var count int
-	err := row.Scan(&count)
-	if err != nil {
-		return false, err
-	}
-
-	return count > 0, nil
 }
 
 func (r *inquiryPostgresRepository) ValidateEmployee(id int) (*entities.Employee, error) {
@@ -60,22 +46,6 @@ func (r *inquiryPostgresRepository) ValidateCustomer(id int) (bool, error) {
 	}
 
 	return count > 0, nil
-}
-
-func (r *inquiryPostgresRepository) GetServicePackagePrice(id int) (float64, error) {
-	query := `SELECT harga_satuan FROM paket_layanan WHERE id_layanan = $1`
-	row := r.db.QueryRow(query, id)
-
-	var price float64
-	err := row.Scan(&price)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, fmt.Errorf("service package with id %d not found", id)
-		}
-		return 0, err
-	}
-
-	return price, nil
 }
 
 // Transaction methods
@@ -190,13 +160,14 @@ func (r *inquiryPostgresRepository) InsertPaymentWithTx(tx *sql.Tx, payment *ent
 			tanggal_bayar,
 			jumlah_bayar,
 			metode_bayar,
+			id_metode_pembayaran,
 			nomor_referensi_partner,
 			status_code_partner,
 			status_message_partner,
 			catatan,
 			created_at,
 			updated_at
-	) VALUES (?,?,?,?,?,?,?,?,?,?
+	) VALUES (?,?,?,?,?,?,?,?,?,?,?
 	) RETURNING id_pembayaran`
 
 	var id int
@@ -207,6 +178,7 @@ func (r *inquiryPostgresRepository) InsertPaymentWithTx(tx *sql.Tx, payment *ent
 		payment.PaymentDate,
 		payment.Amount,
 		payment.Method,
+		payment.PaymentMethodID,
 		payment.PartnerReferenceNo,
 		payment.PartnerStatusCode,
 		payment.PartnerStatusMessage,

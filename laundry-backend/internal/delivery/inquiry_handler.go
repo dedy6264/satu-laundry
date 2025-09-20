@@ -36,6 +36,10 @@ func (h *InquiryHandler) ProcessInquiry(c echo.Context) error {
 	claims := user.Claims.(jwt.MapClaims)
 
 	request.UserID = int(claims["user_id"].(float64)) // JSON number → float64 → int
+	if request.PaymentMethodID == 0 {
+		utils.LoggMsg(svcName, "Invalid Payment Method", nil)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid Payment Method", "")
+	}
 	response, err := h.inquiryUsecase.ProcessInquiry(request, claims)
 	if err != nil {
 		fmt.Printf("Failed to process inquiry: %v\n", err)

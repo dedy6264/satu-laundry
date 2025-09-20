@@ -30,6 +30,7 @@ func (h *OutletHandler) CreateOutlet(c echo.Context) error {
 		utils.LoggMsg(svcName, "Invalid request format", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
+
 	request.Name = strings.ToUpper(request.Name)
 	request.PICName = strings.ToUpper(request.PICName)
 	if err := h.outletUsecase.CreateOutlet(request); err != nil {
@@ -88,6 +89,12 @@ func (h *OutletHandler) GetAllOutlets(c echo.Context) error {
 		svcName = "GetAllOutlets"
 		request entities.DataTablesRequest
 	)
+	// Ambil token dari context
+	// user := c.Get("user").(*jwt.Token)
+	// claims := user.Claims.(jwt.MapClaims)
+
+	// userID := int(claims["user_id"].(float64)) // JSON number → float64 → int
+
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Failed to bind request", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())

@@ -133,6 +133,7 @@ type Payment struct {
 	TransactionID        int        `json:"id_transaksi"`
 	PaymentDate          *time.Time `json:"tanggal_bayar"`
 	Amount               float64    `json:"jumlah_bayar"`
+	PaymentMethodID      int        `json:"id_metode_pembayaran"`
 	Method               string     `json:"metode_bayar"`
 	PartnerReferenceNo   string     `json:"nomor_referensi_partner"`
 	PartnerStatusCode    string     `json:"status_code_partner"`

@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"laundry-backend/internal/entities"
@@ -17,87 +18,103 @@ type inquiryUsecase struct {
 	cabangRepo     repositories.CabangRepository
 	outletRepo     repositories.OutletRepository
 	employeeRepo   repositories.EmployeeRepository
+	paymentRepo    repositories.PaymentMethodRepository
+	serviceRepo    repositories.ServiceRepository
 }
 
 func NewInquiryUsecase(inquiryRepo repositories.InquiryRepository, userAccessRepo repositories.UserAccessRepository,
 	cabangRepo repositories.CabangRepository,
 	outletRepo repositories.OutletRepository,
-	employeeRepo repositories.EmployeeRepository) InquiryUsecase {
+	employeeRepo repositories.EmployeeRepository,
+	paymentRepo repositories.PaymentMethodRepository,
+	serviceRepo repositories.ServiceRepository) InquiryUsecase {
 	return &inquiryUsecase{
 		inquiryRepo:    inquiryRepo,
 		userAccessRepo: userAccessRepo,
 		cabangRepo:     cabangRepo,
 		outletRepo:     outletRepo,
 		employeeRepo:   employeeRepo,
+		paymentRepo:    paymentRepo,
+		serviceRepo:    serviceRepo,
 	}
 }
 
 func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims jwt.MapClaims) (response *entities.InquiryResponse, err error) {
 	var (
-		t  = time.Now()
-		id int
-		// tdb = t.Local().Format(time.RFC3339)
-		// cabang   *entities.Cabang cabang ga bisa dipake buat trx karena harus ada outlet
-		outlet   *entities.Outlet
-		employee *entities.Employee
+		t        = time.Now()
+		outlerId int
 	)
-	reference_id := int(claims["reference_id"].(float64))
-	reference_level := claims["reference_level"].(string)
-	// role := claims["role"].(string)
-	switch reference_level {
-	// case "cabang":
-	// 	cabang, err = u.cabangRepo.FindByID(reference_id)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	id = cabang.ID
-	case "outlet":
-		outlet, err = u.outletRepo.FindByID(reference_id)
-		if err != nil {
-			return nil, err
-		}
-		id = outlet.ID
-	default: //karyawan
-		employee, err = u.employeeRepo.FindByID(reference_id)
-		if err != nil {
-			return nil, err
-		}
-		id = employee.ID
-	}
-	// Validate service package
-	valid, err := u.inquiryRepo.ValidateServicePackage(request.ServicePackageID)
-	if err != nil {
-		return nil, err
-	}
-	if !valid {
-		return nil, errors.New("invalid service package")
-	}
-
+	// 1. validasi user access
 	userAccess, err := u.userAccessRepo.FindByID(request.UserID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("invalid userAccess")
+		}
 		return nil, err
 	}
-	if userAccess == nil {
-		return nil, errors.New("invalid userAccess")
+	// 2. get outlet
+	fmt.Println(":::", userAccess.ReferenceLevel)
+	if userAccess.ReferenceLevel != "cabang" {
+		switch userAccess.ReferenceLevel {
+		case "karyawan":
+			employee, err := u.employeeRepo.FindByID(userAccess.ReferenceID)
+			if err != nil {
+				return nil, err
+			}
+			outlerId = employee.OutletID
+		case "outlet":
+			outlet, err := u.outletRepo.FindByID(userAccess.ReferenceID)
+			if err != nil {
+				return nil, err
+			}
+			outlerId = outlet.ID
+		default:
+			return nil, errors.New("Invalid Reference Level")
+		}
+	} else {
+		if request.OutletID == 0 {
+			return nil, errors.New("Outlet ID CAnnot be Null")
+		}
+		//validasi outlet
+		outletArr, err := u.outletRepo.FindAll(entities.Outlet{
+			CabangID: userAccess.ReferenceID,
+			ID:       request.OutletID,
+		})
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, errors.New("invalid Package")
+			}
+			return nil, err
+		}
+		if len(outletArr) == 0 {
+			return nil, errors.New("invalid OutletID")
+		}
+	}
+	// 3. Validasi paket layanan
+	servicePackage, err := u.serviceRepo.FindByID(request.ServicePackageID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("invalid Package")
+		}
+		return nil, err
 	}
 
-	// Validate customer
-	valid, err = u.inquiryRepo.ValidateCustomer(request.CustomerID)
+	// 4. Validate customer
+	valid, err := u.inquiryRepo.ValidateCustomer(request.CustomerID)
 	if err != nil {
 		return nil, err
 	}
 	if !valid {
 		return nil, errors.New("invalid customer")
 	}
-
-	// Get service package price
-	price, err := u.inquiryRepo.GetServicePackagePrice(request.ServicePackageID)
+	// 5. validasi payment method
+	paymentMethod, err := u.paymentRepo.FindByID(request.PaymentMethodID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Calculate subtotal
-	subtotal := price * request.Quantity
+	subtotal := servicePackage.Price * request.Quantity
 
 	// Begin database transaction
 	tx, err := u.inquiryRepo.BeginTransaction()
@@ -107,7 +124,7 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 
 	// Create transaction entity
 	if request.OutletID == 0 {
-		request.OutletID = employee.OutletID
+		request.OutletID = outlerId
 	}
 	transaction := &entities.Transaction{
 		CustomerID:    request.CustomerID,
@@ -125,7 +142,7 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 	}
 
 	// Insert transaction with transaction
-	id, err = u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
+	id, err := u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("failed to insert transaction: %w", err)
@@ -136,12 +153,12 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 		TransactionID: id,
 		ServiceID:     request.ServicePackageID,
 		Quantity:      &request.Quantity,
-		Price:         &price,
+		Price:         &servicePackage.Price,
 		Subtotal:      &subtotal,
 		CreatedAt:     t,
 		UpdatedAt:     t,
-		CreatedBy:     &employee.Name,
-		UpdatedBy:     &employee.Name,
+		CreatedBy:     &userAccess.Username,
+		UpdatedBy:     &userAccess.Username,
 	}
 
 	// Insert transaction detail with transaction
@@ -153,12 +170,13 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 
 	// Create initial payment record with default values
 	payment := &entities.Payment{
-		TransactionID: id,
-		PaymentDate:   &t,
-		Amount:        0,  // Default to 0 as no payment has been made yet
-		Method:        "", // Default to empty as no payment method selected yet
-		CreatedAt:     t,
-		UpdatedAt:     t,
+		TransactionID:   id,
+		PaymentMethodID: paymentMethod.ID,
+		PaymentDate:     &t,
+		Amount:          0,                        // Default to 0 as no payment has been made yet
+		Method:          paymentMethod.NamaMetode, // Default to empty as no payment method selected yet
+		CreatedAt:       t,
+		UpdatedAt:       t,
 	}
 
 	// Insert payment record

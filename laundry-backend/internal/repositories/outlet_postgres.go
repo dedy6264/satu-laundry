@@ -2,8 +2,9 @@ package repositories
 
 import (
 	"database/sql"
-	"laundry-backend/internal/entities"
 	"fmt"
+	"laundry-backend/internal/entities"
+	"strconv"
 	"strings"
 )
 
@@ -28,8 +29,8 @@ func (r *outletPostgresRepository) Create(outlet *entities.Outlet) error {
 	query := `INSERT INTO outlet (id_cabang, nama_outlet, alamat, kota, provinsi, kode_pos, telepon, email, 
 		latitude, longitude, jam_buka, jam_tutup, pic_nama, pic_email, pic_telepon, created_at, updated_at) 
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()) RETURNING id_outlet`
-	return r.db.QueryRow(query, outlet.CabangID, outlet.Name, outlet.Address, outlet.City, outlet.Province, 
-		outlet.PostalCode, outlet.Phone, outlet.Email, lat, lon, outlet.OpenTime, 
+	return r.db.QueryRow(query, outlet.CabangID, outlet.Name, outlet.Address, outlet.City, outlet.Province,
+		outlet.PostalCode, outlet.Phone, outlet.Email, lat, lon, outlet.OpenTime,
 		outlet.CloseTime, outlet.PICName, outlet.PICEmail, outlet.PICTelepon).Scan(&outlet.ID)
 }
 
@@ -131,10 +132,17 @@ func (r *outletPostgresRepository) FindByCabangID(cabangID int) ([]entities.Outl
 	return outlets, nil
 }
 
-func (r *outletPostgresRepository) FindAll() ([]entities.Outlet, error) {
+func (r *outletPostgresRepository) FindAll(request entities.Outlet) ([]entities.Outlet, error) {
 	query := `SELECT id_outlet, id_cabang, nama_outlet, alamat, kota, provinsi, kode_pos, telepon, email, 
 		latitude, longitude, jam_buka, jam_tutup, pic_nama, pic_email, pic_telepon, created_at, updated_at 
-	FROM outlet`
+	FROM outlet where true `
+	if request.CabangID != 0 {
+		query += ` and id_cabang = ` + strconv.Itoa(request.CabangID)
+	}
+	if request.ID != 0 {
+		query += ` and id_outlet = ` + strconv.Itoa(request.ID)
+	}
+
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -186,48 +194,48 @@ func (r *outletPostgresRepository) FindAll() ([]entities.Outlet, error) {
 func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Outlet, int, int, error) {
 	// Validate orderBy field to prevent SQL injection
 	validFields := map[string]bool{
-		"id":          true,
-		"cabang_id":   true,
-		"name":        true,
-		"city":        true,
-		"province":    true,
-		"pic_name":    true,
-		"pic_email":   true,
-		"created_at":  true,
-		"updated_at":  true,
+		"id":         true,
+		"cabang_id":  true,
+		"name":       true,
+		"city":       true,
+		"province":   true,
+		"pic_name":   true,
+		"pic_email":  true,
+		"created_at": true,
+		"updated_at": true,
 	}
-	
+
 	// Map field names to database column names
 	fieldMap := map[string]string{
-		"id":          "id_outlet",
-		"cabang_id":   "id_cabang",
-		"name":        "nama_outlet",
-		"city":        "kota",
-		"province":    "provinsi",
-		"pic_name":    "pic_nama",
-		"pic_email":   "pic_email",
-		"created_at":  "created_at",
-		"updated_at":  "updated_at",
+		"id":         "id_outlet",
+		"cabang_id":  "id_cabang",
+		"name":       "nama_outlet",
+		"city":       "kota",
+		"province":   "provinsi",
+		"pic_name":   "pic_nama",
+		"pic_email":  "pic_email",
+		"created_at": "created_at",
+		"updated_at": "updated_at",
 	}
-	
+
 	// Default to id if orderBy is not valid
 	if !validFields[orderBy] {
 		orderBy = "id"
 	}
-	
+
 	// Default to asc if orderDir is not valid
 	if orderDir != "asc" && orderDir != "desc" {
 		orderDir = "asc"
 	}
-	
+
 	// Build the query
 	baseQuery := `SELECT id_outlet, id_cabang, nama_outlet, alamat, kota, provinsi, kode_pos, telepon, email, 
 		latitude, longitude, jam_buka, jam_tutup, pic_nama, pic_email, pic_telepon, created_at, updated_at FROM outlet`
 	countQuery := `SELECT COUNT(*) FROM outlet`
-	
+
 	var args []interface{}
 	argIndex := 1
-	
+
 	// Add search condition if provided
 	if search != "" {
 		search = strings.ToLower(search)
@@ -236,18 +244,18 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 		args = append(args, "%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
 		argIndex += 4
 	}
-	
+
 	// Add ordering
 	dbOrderBy := fieldMap[orderBy]
 	if dbOrderBy == "" {
 		dbOrderBy = "id_outlet"
 	}
 	baseQuery += fmt.Sprintf(` ORDER BY %s %s`, dbOrderBy, strings.ToUpper(orderDir))
-	
+
 	// Add pagination
 	baseQuery += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, argIndex, argIndex+1)
 	args = append(args, limit, offset)
-	
+
 	// Execute the data query
 	rows, err := r.db.Query(baseQuery, args...)
 	if err != nil {
@@ -293,14 +301,14 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 
 		outlets = append(outlets, outlet)
 	}
-	
+
 	// Execute the count query
 	var recordsTotal, recordsFiltered int
 	err = r.db.QueryRow(countQuery).Scan(&recordsTotal)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	
+
 	// If search is applied, we need to get the filtered count
 	if search != "" {
 		searchArgs := args[:len(args)-2] // Remove limit and offset args
@@ -311,7 +319,7 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 	} else {
 		recordsFiltered = recordsTotal
 	}
-	
+
 	return outlets, recordsTotal, recordsFiltered, nil
 }
 
@@ -328,8 +336,8 @@ func (r *outletPostgresRepository) Update(outlet *entities.Outlet) error {
 	query := `UPDATE outlet SET id_cabang = $1, nama_outlet = $2, alamat = $3, kota = $4, provinsi = $5, 
 		kode_pos = $6, telepon = $7, email = $8, latitude = $9, longitude = $10, jam_buka = $11, jam_tutup = $12, 
 		pic_nama = $13, pic_email = $14, pic_telepon = $15, updated_at = NOW() WHERE id_outlet = $16`
-	_, err := r.db.Exec(query, outlet.CabangID, outlet.Name, outlet.Address, outlet.City, outlet.Province, 
-		outlet.PostalCode, outlet.Phone, outlet.Email, lat, lon, outlet.OpenTime, 
+	_, err := r.db.Exec(query, outlet.CabangID, outlet.Name, outlet.Address, outlet.City, outlet.Province,
+		outlet.PostalCode, outlet.Phone, outlet.Email, lat, lon, outlet.OpenTime,
 		outlet.CloseTime, outlet.PICName, outlet.PICEmail, outlet.PICTelepon, outlet.ID)
 	return err
 }

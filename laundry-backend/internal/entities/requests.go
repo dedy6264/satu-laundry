@@ -55,6 +55,7 @@ type InquiryRequest struct {
 	ServicePackageID int     `json:"id_layanan" validare:"required"`
 	CustomerID       int     `json:"id_pelanggan" validare:"required"`
 	OutletID         int     `json:"id_outlet"`
+	PaymentMethodID  int     `json:"id_metode_pembayaran"`
 	UserID           int     `json:"id_user"`
 	Quantity         float64 `json:"jumlah" validare:"required"`
 	Note             string  `json:"catatan"`
@@ -107,4 +108,27 @@ type PaymentCallbackRequest struct {
 	ChangeAmount           float64 `json:"kembalian"`
 	StatusCode             string  `json:"status_kode"`
 	StatusMessage          string  `json:"status_pesan"`
+}
+
+type CreatePaymentMethodRequest struct {
+	NamaMetode  string  `json:"nama_metode"`
+	URL         string  `json:"url"`
+	SKey        string  `json:"s_key"`
+	MKey        string  `json:"m_key"`
+	MerchantFee float64 `json:"merchant_fee"`
+	AdminFee    float64 `json:"admin_fee"`
+	Status      string  `json:"status"`
+	CreatedBy   string  `json:"created_by"`
+	UpdatedBy   string  `json:"updated_by"`
+}
+
+type UpdatePaymentMethodRequest struct {
+	NamaMetode  string  `json:"nama_metode"`
+	URL         string  `json:"url"`
+	SKey        string  `json:"s_key"`
+	MKey        string  `json:"m_key"`
+	MerchantFee float64 `json:"merchant_fee"`
+	AdminFee    float64 `json:"admin_fee"`
+	Status      string  `json:"status"`
+	UpdatedBy   string  `json:"updated_by"`
 }

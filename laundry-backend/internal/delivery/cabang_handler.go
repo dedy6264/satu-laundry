@@ -88,6 +88,7 @@ func (h *CabangHandler) GetAllCabangs(c echo.Context) error {
 		svcName = "GetAllCabangs"
 		request entities.DataTablesRequest
 	)
+
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Failed to bind request", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
