@@ -266,6 +266,7 @@ CREATE TABLE IF NOT EXISTS pembayaran (
     tanggal_bayar TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     jumlah_bayar DECIMAL(12, 2) NOT NULL,
     metode_bayar VARCHAR(50), -- tunai, transfer, dll
+    id_metode_pembayaran INTEGER NOT NULL,
     nomor_referensi_partner VARCHAR(50),
     status_code_partner VARCHAR(5),
     status_message_partner VARCHAR(100),
@@ -297,7 +298,6 @@ CREATE TABLE IF NOT EXISTS metode_pembayaran (
     status VARCHAR(20) DEFAULT 'active',     -- active/inactive
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP,
     created_by VARCHAR(100),
     updated_by VARCHAR(100)
 );
