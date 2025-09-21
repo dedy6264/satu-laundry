@@ -22,7 +22,8 @@ type inquiryUsecase struct {
 	serviceRepo    repositories.ServiceRepository
 }
 
-func NewInquiryUsecase(inquiryRepo repositories.InquiryRepository, userAccessRepo repositories.UserAccessRepository,
+func NewInquiryUsecase(inquiryRepo repositories.InquiryRepository,
+	userAccessRepo repositories.UserAccessRepository,
 	cabangRepo repositories.CabangRepository,
 	outletRepo repositories.OutletRepository,
 	employeeRepo repositories.EmployeeRepository,
@@ -53,10 +54,9 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 		return nil, err
 	}
 	// 2. get outlet
-	fmt.Println(":::", userAccess.ReferenceLevel)
 	if userAccess.ReferenceLevel != "cabang" {
 		switch userAccess.ReferenceLevel {
-		case "karyawan":
+		case "pegawai":
 			employee, err := u.employeeRepo.FindByID(userAccess.ReferenceID)
 			if err != nil {
 				return nil, err
@@ -237,19 +237,4 @@ func generateInvoiceNumber() string {
 	random := rand.Intn(9000) + 1000
 
 	return fmt.Sprintf("INV%d%02d%02d%02d%02d%02d%d", year, month, day, hour, minute, second, random)
-}
-
-// stringPtr returns a pointer to the given string
-func stringPtr(s string) *string {
-	return &s
-}
-
-// intPtr returns a pointer to the given int
-func intPtr(i int) *int {
-	return &i
-}
-
-// timePtr returns a pointer to the given time
-func timePtr(t time.Time) *time.Time {
-	return &t
 }

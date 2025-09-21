@@ -60,7 +60,7 @@ func main() {
 		employeeRepo, paymentMethodRepo, serviceRepo)
 	employeeUsecase := usecases.NewEmployeeUsecase(employeeRepo)
 	customerUsecase := usecases.NewCustomerUsecase(customerRepo)
-	serviceUsecase := usecases.NewServiceUsecase(serviceRepo)
+	serviceUsecase := usecases.NewServiceUsecase(serviceRepo, userAccessRepo, outletRepo, employeeRepo)
 	serviceCategoryUsecase := usecases.NewServiceCategoryUsecase(serviceCategoryRepo)
 	userAccessUsecase := usecases.NewUserAccessUsecase(
 		userAccessRepo,
@@ -124,6 +124,13 @@ func main() {
 		e.GET("/cabangs", cabangHandler.GetAllCabangs)
 		e.PUT("/cabangs/:id", cabangHandler.UpdateCabang)
 		e.DELETE("/cabangs/:id", cabangHandler.DeleteCabang)
+		// User Access routes
+		e.POST("/api/v1/user-access", userAccessHandler.CreateUserAccess)
+		e.GET("/api/v1/user-access/:id", userAccessHandler.GetUserAccessByID)
+		e.GET("/api/v1/user-access", userAccessHandler.GetAllUserAccessDataTables)
+		e.PUT("/api/v1/user-access/:id", userAccessHandler.UpdateUserAccess)
+		e.PUT("/api/v1/user-access/:id/password", userAccessHandler.UpdateUserPassword)
+		e.DELETE("/api/v1/user-access/:id", userAccessHandler.DeleteUserAccess)
 
 	}
 
@@ -134,7 +141,7 @@ func main() {
 		// Outlet routes
 		api.POST("/outlets", outletHandler.CreateOutlet)
 		api.GET("/outlets/:id", outletHandler.GetOutletByID)
-		api.GET("/outlets/cabang/:cabang_id", outletHandler.GetOutletsByCabangID)
+		api.GET("/outlets/cabang/:id_cabang", outletHandler.GetOutletsByCabangID)
 		api.GET("/outlets", outletHandler.GetAllOutlets)
 		api.PUT("/outlets/:id", outletHandler.UpdateOutlet)
 		api.DELETE("/outlets/:id", outletHandler.DeleteOutlet)
@@ -171,14 +178,6 @@ func main() {
 		api.GET("/service-categories", serviceCategoryHandler.GetAllServiceCategories)
 		api.PUT("/service-categories/:id", serviceCategoryHandler.UpdateServiceCategory)
 		api.DELETE("/service-categories/:id", serviceCategoryHandler.DeleteServiceCategory)
-
-		// User Access routes
-		api.POST("/user-access", userAccessHandler.CreateUserAccess)
-		api.GET("/user-access/:id", userAccessHandler.GetUserAccessByID)
-		api.GET("/user-access", userAccessHandler.GetAllUserAccessDataTables)
-		api.PUT("/user-access/:id", userAccessHandler.UpdateUserAccess)
-		api.PUT("/user-access/:id/password", userAccessHandler.UpdateUserPassword)
-		api.DELETE("/user-access/:id", userAccessHandler.DeleteUserAccess)
 
 		// Transaction routes
 		api.GET("/transactions", transactionHandler.GetAllTransactions)

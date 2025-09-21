@@ -23,7 +23,22 @@ func (r *employeePostgresRepository) Create(employee *entities.Employee) error {
 }
 
 func (r *employeePostgresRepository) FindByID(id int) (*entities.Employee, error) {
-	query := `SELECT id_pegawai, id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status,  created_at, updated_at FROM pegawai WHERE id_pegawai = $1`
+	query := `SELECT 
+	a.id_pegawai,
+	a.id_outlet, 
+	a.nik, 
+	a.nama_lengkap, 
+	a.email, 
+	a.telepon, 
+	a.alamat, 
+	a.tanggal_lahir, 
+	a.jenis_kelamin, 
+	a.posisi, 
+	a.gaji, 
+	a.tanggal_masuk, 
+	a.status, 
+	a.created_at, 
+	a.updated_at FROM pegawai as a WHERE id_pegawai = $1`
 	row := r.db.QueryRow(query, id)
 
 	var employee entities.Employee
@@ -224,6 +239,7 @@ func (r *employeePostgresRepository) FindAllWithPagination(limit, offset int, se
 
 func (r *employeePostgresRepository) Update(employee *entities.Employee) error {
 	query := `UPDATE pegawai SET id_outlet = $1, nik = $2, nama_lengkap = $3, email = $4, telepon = $5, alamat = $6, tanggal_lahir = $7, jenis_kelamin = $8, posisi = $9, gaji = $10, tanggal_masuk = $11, status = $12,  updated_at = NOW() WHERE id_pegawai = $13`
+	fmt.Println(":::", query)
 	_, err := r.db.Exec(query, employee.OutletID, employee.NIK, employee.Name, employee.Email, employee.Phone, employee.Address, employee.BirthDate, employee.Gender, employee.Position, employee.Salary, employee.JoinDate, employee.Status, employee.ID)
 	return err
 }

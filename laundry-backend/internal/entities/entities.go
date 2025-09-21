@@ -46,8 +46,11 @@ type Cabang struct {
 
 type Outlet struct {
 	ID         int       `json:"id"`
-	CabangID   int       `json:"cabang_id"`
 	Name       string    `json:"name"`
+	CabangID   int       `json:"id_cabang"`
+	NamaCabang string    `json:"nama_cabang"`
+	BrandID    int       `json:"id_brand"`
+	NamaBrand  string    `json:"nama_brand"`
 	Address    string    `json:"address"`
 	City       string    `json:"city"`
 	Province   string    `json:"province"`
@@ -68,7 +71,9 @@ type Outlet struct {
 type Transaction struct {
 	ID             int        `json:"id"`
 	CustomerID     int        `json:"id_pelanggan"`
+	CustomerName   int        `json:"nama_pelanggan"`
 	OutletID       int        `json:"id_outlet"`
+	OutletName     int        `json:"nama_outlet"`
 	UserID         *int       `json:"id_access"`
 	InvoiceNumber  string     `json:"nomor_invoice"`
 	EntryDate      *time.Time `json:"tanggal_masuk"`

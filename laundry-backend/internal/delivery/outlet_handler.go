@@ -69,7 +69,7 @@ func (h *OutletHandler) GetOutletsByCabangID(c echo.Context) error {
 	var (
 		svcName = "GetOutletsByCabangID"
 	)
-	cabangID, err := strconv.Atoi(c.Param("cabang_id"))
+	cabangID, err := strconv.Atoi(c.Param("id_cabang"))
 	if err != nil {
 		utils.LoggMsg(svcName, "Invalid cabang ID", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid cabang ID", err.Error())

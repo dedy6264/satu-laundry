@@ -133,9 +133,31 @@ func (r *outletPostgresRepository) FindByCabangID(cabangID int) ([]entities.Outl
 }
 
 func (r *outletPostgresRepository) FindAll(request entities.Outlet) ([]entities.Outlet, error) {
-	query := `SELECT id_outlet, id_cabang, nama_outlet, alamat, kota, provinsi, kode_pos, telepon, email, 
-		latitude, longitude, jam_buka, jam_tutup, pic_nama, pic_email, pic_telepon, created_at, updated_at 
-	FROM outlet where true `
+	query := `SELECT 
+	a.id_outlet,
+	a.id_cabang,
+	b.nama_cabang,
+	c.id_brand,
+	c.nama_brand,
+	a.nama_outlet,
+	a.alamat,
+	a.kota,
+	a.provinsi,
+	a.kode_pos,
+	a.telepon,
+	a.email,	 
+	a.latitude,
+	a.longitude,
+	a.jam_buka,
+	a.jam_tutup,
+	a.pic_nama,
+	a.pic_email,
+	a.pic_telepon,
+	a.created_at,
+	a.updated_at 
+	FROM outlet as a
+	leftjoin cabang as b on b.id = a.id_cabang
+	leftjoin brand as c on c.id = b.id_brand where true `
 	if request.CabangID != 0 {
 		query += ` and id_cabang = ` + strconv.Itoa(request.CabangID)
 	}
@@ -156,6 +178,9 @@ func (r *outletPostgresRepository) FindAll(request entities.Outlet) ([]entities.
 		err := rows.Scan(
 			&outlet.ID,
 			&outlet.CabangID,
+			&outlet.NamaCabang,
+			&outlet.BrandID,
+			&outlet.NamaBrand,
 			&outlet.Name,
 			&outlet.Address,
 			&outlet.City,
@@ -195,7 +220,7 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 	// Validate orderBy field to prevent SQL injection
 	validFields := map[string]bool{
 		"id":         true,
-		"cabang_id":  true,
+		"id_cabang":  true,
 		"name":       true,
 		"city":       true,
 		"province":   true,
@@ -208,7 +233,7 @@ func (r *outletPostgresRepository) FindAllWithPagination(limit, offset int, sear
 	// Map field names to database column names
 	fieldMap := map[string]string{
 		"id":         "id_outlet",
-		"cabang_id":  "id_cabang",
+		"id_cabang":  "id_cabang",
 		"name":       "nama_outlet",
 		"city":       "kota",
 		"province":   "provinsi",

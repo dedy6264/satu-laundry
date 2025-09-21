@@ -66,7 +66,7 @@ type ServiceUsecase interface {
 	CreateService(request entities.CreateServiceRequest) error
 	GetServiceByID(id int) (*entities.Service, error)
 	GetAllServices() ([]entities.Service, error)
-	GetAllServicesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error)
+	GetAllServicesDataTables(request entities.DataTablesRequest, UserID int) (*entities.DataTablesResponse, error)
 	UpdateService(id int, request entities.UpdateServiceRequest) error
 	DeleteService(id int) error
 	GetServicesByCategoryID(categoryID int) ([]entities.Service, error)

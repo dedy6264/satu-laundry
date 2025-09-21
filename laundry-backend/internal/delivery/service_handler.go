@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 )
 
@@ -69,12 +70,17 @@ func (h *ServiceHandler) GetAllServices(c echo.Context) error {
 		svcName = "GetAllServices"
 		request entities.DataTablesRequest
 	)
+	// Ambil token dari context
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+
+	UserID := int(claims["user_id"].(float64)) // JSON number → float64 → int
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Failed to bind request", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
 
-	response, err := h.serviceUsecase.GetAllServicesDataTables(request)
+	response, err := h.serviceUsecase.GetAllServicesDataTables(request, UserID)
 	if err != nil {
 		utils.LoggMsg(svcName, "Failed to get services", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to get services", err.Error())

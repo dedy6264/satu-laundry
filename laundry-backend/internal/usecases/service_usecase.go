@@ -1,17 +1,30 @@
 package usecases
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"laundry-backend/internal/entities"
 	"laundry-backend/internal/repositories"
 )
 
 type serviceUsecase struct {
-	serviceRepo repositories.ServiceRepository
+	serviceRepo    repositories.ServiceRepository
+	userAccessRepo repositories.UserAccessRepository
+	outletRepo     repositories.OutletRepository
+	employeeRepo   repositories.EmployeeRepository
 }
 
-func NewServiceUsecase(serviceRepo repositories.ServiceRepository) ServiceUsecase {
+func NewServiceUsecase(serviceRepo repositories.ServiceRepository,
+	userAccessRepo repositories.UserAccessRepository,
+	outletRepo repositories.OutletRepository,
+	employeeRepo repositories.EmployeeRepository,
+) ServiceUsecase {
 	return &serviceUsecase{
-		serviceRepo: serviceRepo,
+		serviceRepo:    serviceRepo,
+		userAccessRepo: userAccessRepo,
+		outletRepo:     outletRepo,
+		employeeRepo:   employeeRepo,
 	}
 }
 
@@ -37,7 +50,38 @@ func (u *serviceUsecase) GetAllServices() ([]entities.Service, error) {
 	return u.serviceRepo.FindAll()
 }
 
-func (u *serviceUsecase) GetAllServicesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
+func (u *serviceUsecase) GetAllServicesDataTables(request entities.DataTablesRequest, UserID int) (*entities.DataTablesResponse, error) {
+	var (
+		outlerId int
+	)
+	// validasi user
+	userAccess, err := u.userAccessRepo.FindByID(UserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("invalid userAccess")
+		}
+		return nil, err
+	}
+	// 2. get outlet
+	if userAccess.ReferenceLevel != "cabang" {
+		switch userAccess.ReferenceLevel {
+		case "pegawai":
+			employee, err := u.employeeRepo.FindByID(userAccess.ReferenceID)
+			if err != nil {
+				return nil, err
+			}
+			outlerId = employee.OutletID
+		case "outlet":
+			outlet, err := u.outletRepo.FindByID(userAccess.ReferenceID)
+			if err != nil {
+				return nil, err
+			}
+			outlerId = outlet.ID
+		default:
+			return nil, errors.New("Invalid Reference Level")
+		}
+	}
+	fmt.Println(outlerId)
 	// Get order column
 	var orderBy string
 	var orderDir string
