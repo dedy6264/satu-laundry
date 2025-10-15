@@ -3,9 +3,9 @@ package usecases
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"laundry-backend/internal/entities"
 	"laundry-backend/internal/repositories"
+	"log"
 )
 
 type serviceUsecase struct {
@@ -47,73 +47,45 @@ func (u *serviceUsecase) GetServiceByID(id int) (*entities.Service, error) {
 }
 
 func (u *serviceUsecase) GetAllServices() ([]entities.Service, error) {
-	return u.serviceRepo.FindAll()
+	return u.serviceRepo.FindAll(entities.Service{})
 }
 
-func (u *serviceUsecase) GetAllServicesDataTables(request entities.DataTablesRequest, UserID int) (*entities.DataTablesResponse, error) {
-	var (
-		outlerId int
-	)
+func (u *serviceUsecase) GetAllServicesDataTables(request entities.DTRequest[entities.Service]) (*entities.DataTablesResponse, error) {
+	var brandID int
 	// validasi user
-	userAccess, err := u.userAccessRepo.FindByID(UserID)
+	userAccess, err := u.userAccessRepo.FindByID(request.UserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("invalid userAccess")
 		}
 		return nil, err
 	}
-	// 2. get outlet
+
+	// // 2. get outlet
 	if userAccess.ReferenceLevel != "cabang" {
 		switch userAccess.ReferenceLevel {
 		case "pegawai":
+
 			employee, err := u.employeeRepo.FindByID(userAccess.ReferenceID)
 			if err != nil {
+				log.Println(":: employeeRepo.FindByID")
 				return nil, err
 			}
-			outlerId = employee.OutletID
+			brandID = employee.BrandID
 		case "outlet":
 			outlet, err := u.outletRepo.FindByID(userAccess.ReferenceID)
 			if err != nil {
+				log.Println(":: outletRepo.FindByID")
 				return nil, err
 			}
-			outlerId = outlet.ID
+			brandID = outlet.BrandID
 		default:
-			return nil, errors.New("Invalid Reference Level")
+			return nil, errors.New("invalid reference level")
 		}
 	}
-	fmt.Println(outlerId)
-	// Get order column
-	var orderBy string
-	var orderDir string
-	if len(request.Order) > 0 && request.Order[0].Column < len(request.Columns) {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
 
-	// Map column names to database column names
-	columnMap := map[string]string{
-		"id":             "id_layanan",
-		"kategori_id":    "kategori_id",
-		"nama_layanan":   "nama_layanan",
-		"harga":          "harga",
-		"satuan":         "satuan",
-		"estimasi_waktu": "estimasi_waktu",
-		"created_at":     "created_at",
-	}
-
-	if dbColumn, exists := columnMap[orderBy]; exists {
-		orderBy = dbColumn
-	} else {
-		orderBy = "id_layanan"
-	}
-
-	services, totalCount, err := u.serviceRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
-	)
+	request.Data.BrandID = brandID
+	services, totalCount, err := u.serviceRepo.FindAllWithPagination(request)
 	if err != nil {
 		return nil, err
 	}
@@ -128,15 +100,15 @@ func (u *serviceUsecase) GetAllServicesDataTables(request entities.DataTablesReq
 	return response, nil
 }
 
-func (u *serviceUsecase) UpdateService(id int, request entities.UpdateServiceRequest) error {
+func (u *serviceUsecase) UpdateService(request entities.Service) error {
 	// First get the existing service to preserve the BrandID
-	existingService, err := u.serviceRepo.FindByID(id)
+	existingService, err := u.serviceRepo.FindByID(request.ID)
 	if err != nil {
 		return err
 	}
 
 	service := &entities.Service{
-		ID:          id,
+		ID:          request.ID,
 		BrandID:     existingService.BrandID, // Preserve the existing BrandID
 		CategoryID:  request.CategoryID,
 		Name:        request.Name,

@@ -17,17 +17,17 @@ func NewCabangUsecase(cabangRepo repositories.CabangRepository) CabangUsecase {
 
 func (u *cabangUsecase) CreateCabang(request entities.RegisterCabangRequest) error {
 	cabang := &entities.Cabang{
-		BrandID:     request.BrandID,
-		Name:        request.Name,
-		Address:     request.Address,
-		City:        request.City,
-		Province:    request.Province,
-		PostalCode:  request.PostalCode,
-		Phone:       request.Phone,
-		Email:       request.Email,
-		PICName:     request.PICName,
-		PICEmail:    request.PICEmail,
-		PICTelepon:  request.PICTelepon,
+		BrandID:    request.BrandID,
+		Name:       request.Name,
+		Address:    request.Address,
+		City:       request.City,
+		Province:   request.Province,
+		PostalCode: request.PostalCode,
+		Phone:      request.Phone,
+		Email:      request.Email,
+		PICName:    request.PICName,
+		PICEmail:   request.PICEmail,
+		PICTelepon: request.PICTelepon,
 	}
 
 	return u.cabangRepo.Create(cabang)
@@ -45,38 +45,25 @@ func (u *cabangUsecase) GetAllCabangs() ([]entities.Cabang, error) {
 	return u.cabangRepo.FindAll()
 }
 
-func (u *cabangUsecase) GetAllCabangsDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// Default ordering
-	orderBy := "id"
-	orderDir := "asc"
-	
-	// If ordering is specified
-	if len(request.Order) > 0 && len(request.Columns) > request.Order[0].Column {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
-	
+func (u *cabangUsecase) GetAllCabangsDataTables(request entities.DTRequest[entities.Cabang]) (*entities.DataTablesResponse, error) {
+
 	// Get data with pagination
-	cabangs, recordsTotal, recordsFiltered, err := u.cabangRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
+	cabangs, recordsTotal, err := u.cabangRepo.FindAllWithPagination(
+		request,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create response
 	response := &entities.DataTablesResponse{
 		Draw:            request.Draw,
 		RecordsTotal:    recordsTotal,
-		RecordsFiltered: recordsFiltered,
+		RecordsFiltered: recordsTotal,
 		Data:            cabangs,
 	}
-	
+
 	return response, nil
 }
 

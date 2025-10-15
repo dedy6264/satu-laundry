@@ -1,209 +1,54 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"log"
-
-	"laundry-backend/internal/delivery"
-	"laundry-backend/internal/middleware"
-	"laundry-backend/internal/repositories"
-	"laundry-backend/internal/usecases"
-	"laundry-backend/internal/utils"
+	"laundry-backend/apps"
+	"laundry-backend/configs"
+	"laundry-backend/repositories"
+	"laundry-backend/routes"
 
 	"github.com/labstack/echo/v4"
-	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
 )
 
+var ctx = context.Background()
+
 func main() {
-	// Load configuration
-	config, err := utils.LoadConfig()
+	env, err := configs.LoadConfig()
 	if err != nil {
-		log.Fatal("Cannot load config:", err)
-	}
-
-	// Debug: Print configuration
-	fmt.Printf("DB Config: host=%s port=%s user=%s password=%s dbname=%s\n",
-		config.Database.Host, config.Database.Port, config.Database.User,
-		config.Database.Password, config.Database.Name)
-
-	// Initialize database connection
-	db, err := initDB(config)
-	if err != nil {
-		// log.Fatal("Cannot connect to database:", err)
 		panic(err)
 	}
-	defer db.Close()
-
-	// Initialize repositories
-	userRepo := repositories.NewUserRepository(db)
-	brandRepo := repositories.NewBrandRepository(db)
-	cabangRepo := repositories.NewCabangRepository(db)
-	outletRepo := repositories.NewOutletRepository(db)
-	employeeRepo := repositories.NewEmployeeRepository(db)
-	inquiryRepo := repositories.NewInquiryRepository(db, employeeRepo)
-	customerRepo := repositories.NewCustomerRepository(db)
-	serviceRepo := repositories.NewServiceRepository(db)
-	serviceCategoryRepo := repositories.NewServiceCategoryRepository(db)
-	userAccessRepo := repositories.NewUserAccessRepository(db)
-	transactionRepo := repositories.NewTransactionRepository(db)
-	paymentMethodRepo := repositories.NewPaymentMethodRepository(db)
-
-	// Initialize usecases
-	authUsecase := usecases.NewAuthUsecase(userRepo)
-	brandUsecase := usecases.NewBrandUsecase(brandRepo)
-	cabangUsecase := usecases.NewCabangUsecase(cabangRepo)
-	outletUsecase := usecases.NewOutletUsecase(outletRepo)
-	inquiryUsecase := usecases.NewInquiryUsecase(inquiryRepo, userAccessRepo, cabangRepo,
-		outletRepo,
-		employeeRepo, paymentMethodRepo, serviceRepo)
-	employeeUsecase := usecases.NewEmployeeUsecase(employeeRepo)
-	customerUsecase := usecases.NewCustomerUsecase(customerRepo)
-	serviceUsecase := usecases.NewServiceUsecase(serviceRepo, userAccessRepo, outletRepo, employeeRepo)
-	serviceCategoryUsecase := usecases.NewServiceCategoryUsecase(serviceCategoryRepo)
-	userAccessUsecase := usecases.NewUserAccessUsecase(
-		userAccessRepo,
-		cabangRepo,
-		outletRepo,
-		employeeRepo,
-		"laundry-secret-key",
-		24*60*60,
-	) // 24 hours
-	transactionUsecase := usecases.NewTransactionUsecase(transactionRepo)
-	paymentMethodUsecase := usecases.NewPaymentMethodUsecase(paymentMethodRepo)
-
-	// Initialize handlers
-	authHandler := delivery.NewAuthHandler(authUsecase)
-	brandHandler := delivery.NewBrandHandler(brandUsecase)
-	cabangHandler := delivery.NewCabangHandler(cabangUsecase)
-	outletHandler := delivery.NewOutletHandler(outletUsecase)
-	inquiryHandler := delivery.NewInquiryHandler(inquiryUsecase)
-	employeeHandler := delivery.NewEmployeeHandler(employeeUsecase)
-	customerHandler := delivery.NewCustomerHandler(customerUsecase)
-	serviceHandler := delivery.NewServiceHandler(serviceUsecase)
-	serviceCategoryHandler := delivery.NewServiceCategoryHandler(serviceCategoryUsecase)
-	userAccessHandler := delivery.NewUserAccessHandler(userAccessUsecase, "laundry-secret-key")
-	transactionHandler := delivery.NewTransactionHandler(transactionUsecase)
-	paymentMethodHandler := delivery.NewPaymentMethodHandler(paymentMethodUsecase)
-
 	// Initialize Echo instance
 	e := echo.New()
 
-	// Middleware
-	e.Use(echoMiddleware.Logger())
-	e.Use(echoMiddleware.Recover())
-
-	// Custom logging middleware
-	loggingMiddleware := middleware.NewLoggingMiddleware()
-	e.Use(loggingMiddleware.LogRequestResponse)
-
-	// CORS
-	e.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
-	}))
-
-	// Routes
-	// Auth routes
-	e.POST("/api/v1/login", authHandler.Login)
-	e.POST("/api/v1/employee/login", userAccessHandler.UserLogin)
-	// administrator
-	{
-		// Brand routes
-		e.POST("/brands", brandHandler.CreateBrand)
-		e.GET("/brands/:id", brandHandler.GetBrandByID)
-		e.GET("/brands", brandHandler.GetAllBrands)
-		e.PUT("/brands/:id", brandHandler.UpdateBrand)
-		e.DELETE("/brands/:id", brandHandler.DeleteBrand)
-
-		// Cabang routes
-		e.POST("/cabangs", cabangHandler.CreateCabang)
-		e.GET("/cabangs/:id", cabangHandler.GetCabangByID)
-		e.GET("/cabangs/brand/:brand_id", cabangHandler.GetCabangsByBrandID)
-		e.GET("/cabangs", cabangHandler.GetAllCabangs)
-		e.PUT("/cabangs/:id", cabangHandler.UpdateCabang)
-		e.DELETE("/cabangs/:id", cabangHandler.DeleteCabang)
-		// User Access routes
-		e.POST("/api/v1/user-access", userAccessHandler.CreateUserAccess)
-		e.GET("/api/v1/user-access/:id", userAccessHandler.GetUserAccessByID)
-		e.GET("/api/v1/user-access", userAccessHandler.GetAllUserAccessDataTables)
-		e.PUT("/api/v1/user-access/:id", userAccessHandler.UpdateUserAccess)
-		e.PUT("/api/v1/user-access/:id/password", userAccessHandler.UpdateUserPassword)
-		e.DELETE("/api/v1/user-access/:id", userAccessHandler.DeleteUserAccess)
-
+	// Initialize database connection
+	db, err := initDB()
+	if err != nil {
+		panic(err)
 	}
+	defer db.Close()
+	repo := repositories.NewRepositories(db, ctx)
+	// Initialize usecases
+	services := apps.SetupApp(db, repo)
 
-	// Protected routes
-	api := e.Group("/api/v1")
-	{
-		api.Use(echoMiddleware.JWT([]byte("laundry-secret-key")))
-		// Outlet routes
-		api.POST("/outlets", outletHandler.CreateOutlet)
-		api.GET("/outlets/:id", outletHandler.GetOutletByID)
-		api.GET("/outlets/cabang/:id_cabang", outletHandler.GetOutletsByCabangID)
-		api.GET("/outlets", outletHandler.GetAllOutlets)
-		api.PUT("/outlets/:id", outletHandler.UpdateOutlet)
-		api.DELETE("/outlets/:id", outletHandler.DeleteOutlet)
+	// Routing API
+	routes.RouteApi(e, services)
 
-		// Inquiry routes
-		api.POST("/inquiry", inquiryHandler.ProcessInquiry)
-
-		// Employee routes
-		api.POST("/pegawai", employeeHandler.CreateEmployee)
-		api.GET("/pegawai/:id", employeeHandler.GetEmployeeByID)
-		api.GET("/pegawai", employeeHandler.GetAllEmployees)
-		api.PUT("/pegawai/:id", employeeHandler.UpdateEmployee)
-		api.DELETE("/pegawai/:id", employeeHandler.DeleteEmployee)
-
-		// Customer routes
-		api.POST("/pelanggan", customerHandler.CreateCustomer)
-		api.GET("/pelanggan/:id", customerHandler.GetCustomerByID)
-		api.GET("/pelanggan/outlet/:outlet_id", customerHandler.GetCustomersByOutletID)
-		api.GET("/pelanggan", customerHandler.GetAllCustomers)
-		api.PUT("/pelanggan/:id", customerHandler.UpdateCustomer)
-		api.DELETE("/pelanggan/:id", customerHandler.DeleteCustomer)
-
-		// Service routes
-		api.POST("/services", serviceHandler.CreateService)
-		api.GET("/services/:id", serviceHandler.GetServiceByID)
-		api.GET("/services", serviceHandler.GetAllServices)
-		api.PUT("/services/:id", serviceHandler.UpdateService)
-		api.DELETE("/services/:id", serviceHandler.DeleteService)
-		api.GET("/services/category/:category_id", serviceHandler.GetServicesByCategoryID)
-
-		// Service Category routes
-		api.POST("/service-categories", serviceCategoryHandler.CreateServiceCategory)
-		api.GET("/service-categories/:id", serviceCategoryHandler.GetServiceCategoryByID)
-		api.GET("/service-categories", serviceCategoryHandler.GetAllServiceCategories)
-		api.PUT("/service-categories/:id", serviceCategoryHandler.UpdateServiceCategory)
-		api.DELETE("/service-categories/:id", serviceCategoryHandler.DeleteServiceCategory)
-
-		// Transaction routes
-		api.GET("/transactions", transactionHandler.GetAllTransactions)
-		api.GET("/transactions/:id", transactionHandler.GetTransactionByID)
-		api.GET("/transactions/outlet/:outlet_id", transactionHandler.GetTransactionsByOutletID)
-		api.GET("/transactions/:id/details", transactionHandler.GetTransactionDetails)
-		api.PUT("/transactions/:id/status", transactionHandler.UpdateTransactionStatus)
-		api.PUT("/transactions/:id/payment-status", transactionHandler.UpdatePaymentStatus)
-		api.POST("/transactions/payment-callback", transactionHandler.ProcessPaymentCallback)
-
-		// Payment Method routes
-		api.POST("/payment-methods", paymentMethodHandler.CreatePaymentMethod)
-		api.GET("/payment-methods/:id", paymentMethodHandler.GetPaymentMethodByID)
-		api.GET("/payment-methods", paymentMethodHandler.GetAllPaymentMethods)
-		api.PUT("/payment-methods/:id", paymentMethodHandler.UpdatePaymentMethod)
-		api.DELETE("/payment-methods/:id", paymentMethodHandler.DeletePaymentMethod)
-	}
 	// Start server
-	// e.Logger.Fatal(e.Start(config.Server.Address))
-	e.Logger.Fatal(e.Start(":" + config.Server.Address))
+	e.Logger.Fatal(e.Start(":" + env.Server.Address)) // You can use config if needed
 }
 
-func initDB(config *utils.Config) (*sql.DB, error) {
-	// Format PostgreSQL connection string
+func initDB() (*sql.DB, error) {
+	env, err := configs.LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+	// Use configuration values
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		config.Database.Host, config.Database.Port, config.Database.User, config.Database.Password, config.Database.Name)
+		env.Database.Host, env.Database.Port, env.Database.User,
+		env.Database.Password, env.Database.Name)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {

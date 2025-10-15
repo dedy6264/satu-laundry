@@ -15,7 +15,7 @@ func NewServiceCategoryUsecase(serviceCategoryRepo repositories.ServiceCategoryR
 	}
 }
 
-func (u *serviceCategoryUsecase) CreateServiceCategory(request entities.CreateServiceCategoryRequest) error {
+func (u *serviceCategoryUsecase) CreateServiceCategory(request entities.ServiceCategory) error {
 	category := &entities.ServiceCategory{
 		Name:        request.Name,
 		Description: request.Description,
@@ -32,35 +32,10 @@ func (u *serviceCategoryUsecase) GetAllServiceCategories() ([]entities.ServiceCa
 	return u.serviceCategoryRepo.FindAll()
 }
 
-func (u *serviceCategoryUsecase) GetAllServiceCategoriesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// Get order column
-	var orderBy string
-	var orderDir string
-	if len(request.Order) > 0 && request.Order[0].Column < len(request.Columns) {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
+func (u *serviceCategoryUsecase) GetAllServiceCategoriesDataTables(request entities.DTRequest[entities.ServiceCategory]) (*entities.DataTablesResponse, error) {
 
-	// Map column names to database column names
-	columnMap := map[string]string{
-		"id":          "id_kategori",
-		"nama_kategori": "nama_kategori",
-		"deskripsi":   "deskripsi",
-		"created_at":  "created_at",
-	}
-
-	if dbColumn, exists := columnMap[orderBy]; exists {
-		orderBy = dbColumn
-	} else {
-		orderBy = "id_kategori"
-	}
-
-	categories, totalCount, _, err := u.serviceCategoryRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
+	categories, totalCount, err := u.serviceCategoryRepo.FindAllWithPagination(
+		request,
 	)
 	if err != nil {
 		return nil, err
@@ -76,15 +51,15 @@ func (u *serviceCategoryUsecase) GetAllServiceCategoriesDataTables(request entit
 	return response, nil
 }
 
-func (u *serviceCategoryUsecase) UpdateServiceCategory(id int, request entities.UpdateServiceCategoryRequest) error {
+func (u *serviceCategoryUsecase) UpdateServiceCategory(request entities.ServiceCategory) error {
 	// First get the existing category
-	existingCategory, err := u.serviceCategoryRepo.FindByID(id)
+	existingCategory, err := u.serviceCategoryRepo.FindByID(request.ID)
 	if err != nil {
 		return err
 	}
 
 	category := &entities.ServiceCategory{
-		ID:          id,
+		ID:          request.ID,
 		Name:        request.Name,
 		Description: request.Description,
 		CreatedAt:   existingCategory.CreatedAt,

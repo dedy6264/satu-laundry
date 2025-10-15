@@ -36,38 +36,23 @@ func (u *brandUsecase) GetAllBrands() ([]entities.Brand, error) {
 	return u.brandRepo.FindAll()
 }
 
-func (u *brandUsecase) GetAllBrandsDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// Default ordering
-	orderBy := "id"
-	orderDir := "asc"
-	
-	// If ordering is specified
-	if len(request.Order) > 0 && len(request.Columns) > request.Order[0].Column {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
-	
+func (u *brandUsecase) GetAllBrandsDataTables(request entities.DTRequest[entities.Brand]) (response *entities.DataTablesResponse, err error) {
+
 	// Get data with pagination
-	brands, recordsTotal, recordsFiltered, err := u.brandRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
-	)
-	
+	brands, totalCount, err := u.brandRepo.FindAllWithPagination(request)
+
 	if err != nil {
-		return nil, err
+		return response, err
 	}
-	
+
 	// Create response
-	response := &entities.DataTablesResponse{
+	response = &entities.DataTablesResponse{
 		Draw:            request.Draw,
-		RecordsTotal:    recordsTotal,
-		RecordsFiltered: recordsFiltered,
+		RecordsTotal:    totalCount,
+		RecordsFiltered: totalCount,
 		Data:            brands,
 	}
-	
+
 	return response, nil
 }
 
@@ -77,9 +62,9 @@ func (u *brandUsecase) UpdateBrand(id int, request entities.RegisterBrandRequest
 		return err
 	}
 
-	if brand == nil {
-		return nil // Brand tidak ditemukan
-	}
+	// if brand == nil {
+	// 	return nil // Brand tidak ditemukan
+	// }
 
 	brand.Name = request.Name
 	brand.Description = request.Description

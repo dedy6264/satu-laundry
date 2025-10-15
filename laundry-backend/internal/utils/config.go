@@ -40,24 +40,7 @@ type LogConfig struct {
 }
 
 func LoadConfig() (*Config, error) {
-	// viper.SetConfigFile(".env")
-	// viper.SetConfigName(".env")
-	// viper.SetConfigType("env")
-	// viper.AddConfigPath("/app") // explicit
-	// viper.AddConfigPath(".")    // current dir
-	// viper.AddConfigPath("..")   // parent dir
 
-	// if err := viper.ReadInConfig(); err != nil {
-	// 	log.Fatalf("Error reading config file: %v", err)
-	// }
-	// viper.AutomaticEnv() // Removed to prevent environment variables from overriding .env
-
-	// if err := viper.ReadInConfig(); err != nil {
-	// 	log.Printf("Error reading config file, %s", err)
-	// }
-
-	// Debug: Print all config values
-	// log.Printf("All config values: %+v", viper.AllSettings())
 	exp, _ := strconv.Atoi(GetEnv("JWT_EXPIRE"))
 	readTimeout, _ := strconv.Atoi(GetEnv("SERVER_READ_TIMEOUT"))
 	writeTimeout, _ := strconv.Atoi(GetEnv("SERVER_WRITE_TIMEOUT"))

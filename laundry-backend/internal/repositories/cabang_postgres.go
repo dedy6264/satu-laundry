@@ -2,9 +2,8 @@ package repositories
 
 import (
 	"database/sql"
-	"fmt"
 	"laundry-backend/internal/entities"
-	"strings"
+	"strconv"
 )
 
 type cabangPostgresRepository struct {
@@ -132,42 +131,7 @@ func (r *cabangPostgresRepository) FindAll() ([]entities.Cabang, error) {
 	return cabangs, nil
 }
 
-func (r *cabangPostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Cabang, int, int, error) {
-	// Validate orderBy field to prevent SQL injection
-	validFields := map[string]bool{
-		"id":         true,
-		"brand_id":   true,
-		"name":       true,
-		"city":       true,
-		"province":   true,
-		"pic_name":   true,
-		"pic_email":  true,
-		"created_at": true,
-		"updated_at": true,
-	}
-
-	// Map field names to database column names
-	fieldMap := map[string]string{
-		"id":         "id_cabang",
-		"brand_id":   "id_brand",
-		"name":       "nama_cabang",
-		"city":       "kota",
-		"province":   "provinsi",
-		"pic_name":   "pic_nama",
-		"pic_email":  "pic_email",
-		"created_at": "created_at",
-		"updated_at": "updated_at",
-	}
-
-	// Default to id if orderBy is not valid
-	if !validFields[orderBy] {
-		orderBy = "id"
-	}
-
-	// Default to asc if orderDir is not valid
-	if orderDir != "asc" && orderDir != "desc" {
-		orderDir = "asc"
-	}
+func (r *cabangPostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.Cabang]) ([]entities.Cabang, int, error) {
 
 	// Build the query
 	baseQuery := `SELECT 
@@ -184,36 +148,26 @@ func (r *cabangPostgresRepository) FindAllWithPagination(limit, offset int, sear
 	pic_email, 
 	pic_telepon, 
 	created_at, 
-	updated_at FROM cabang`
+	updated_at FROM cabang where true`
 	countQuery := `SELECT COUNT(*) FROM cabang`
-
-	var args []interface{}
-	argIndex := 1
-
-	// Add search condition if provided
-	if search != "" {
-		search = strings.ToLower(search)
-		baseQuery += fmt.Sprintf(` WHERE LOWER(nama_cabang) LIKE $%d OR LOWER(kota) LIKE $%d OR LOWER(provinsi) LIKE $%d OR LOWER(pic_nama) LIKE $%d`, argIndex, argIndex+1, argIndex+2, argIndex+3)
-		countQuery += fmt.Sprintf(` WHERE LOWER(nama_cabang) LIKE $%d OR LOWER(kota) LIKE $%d OR LOWER(provinsi) LIKE $%d OR LOWER(pic_nama) LIKE $%d`, argIndex, argIndex+1, argIndex+2, argIndex+3)
-		args = append(args, "%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
-		argIndex += 4
+	if request.Data.ID != 0 {
+		baseQuery += ` and id_cabang = ` + strconv.Itoa(request.Data.ID)
 	}
-
-	// Add ordering
-	dbOrderBy := fieldMap[orderBy]
-	if dbOrderBy == "" {
-		dbOrderBy = "id_cabang"
+	if request.Data.BrandID != 0 {
+		baseQuery += ` and id_brand = ` + strconv.Itoa(request.Data.BrandID)
 	}
-	baseQuery += fmt.Sprintf(` ORDER BY %s %s`, dbOrderBy, strings.ToUpper(orderDir))
-
-	// Add pagination
-	baseQuery += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, argIndex, argIndex+1)
-	args = append(args, limit, offset)
-
+	if request.OrderBy != "" {
+		baseQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		baseQuery += ` ORDER BY id_cabang ASC`
+	}
+	if request.Length != 0 {
+		baseQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
+	}
 	// Execute the data query
-	rows, err := r.db.Query(baseQuery, args...)
+	rows, err := r.db.Query(baseQuery)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -237,30 +191,19 @@ func (r *cabangPostgresRepository) FindAllWithPagination(limit, offset int, sear
 			&cabang.UpdatedAt,
 		)
 		if err != nil {
-			return nil, 0, 0, err
+			return nil, 0, err
 		}
 		cabangs = append(cabangs, cabang)
 	}
 
 	// Execute the count query
-	var recordsTotal, recordsFiltered int
+	var recordsTotal int
 	err = r.db.QueryRow(countQuery).Scan(&recordsTotal)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 
-	// If search is applied, we need to get the filtered count
-	if search != "" {
-		searchArgs := args[:len(args)-2] // Remove limit and offset args
-		err = r.db.QueryRow(countQuery, searchArgs...).Scan(&recordsFiltered)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-	} else {
-		recordsFiltered = recordsTotal
-	}
-
-	return cabangs, recordsTotal, recordsFiltered, nil
+	return cabangs, recordsTotal, nil
 }
 
 func (r *cabangPostgresRepository) Update(cabang *entities.Cabang) error {

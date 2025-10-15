@@ -20,38 +20,11 @@ func (u *transactionUsecase) GetAllTransactions() ([]entities.Transaction, error
 	return u.transactionRepo.FindAll()
 }
 
-func (u *transactionUsecase) GetAllTransactionsDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
+func (u *transactionUsecase) GetAllTransactionsDataTables(request entities.DTRequest[entities.Transaction]) (*entities.DataTablesResponse, error) {
+
 	// Get order column
-	var orderBy string
-	var orderDir string
-	if len(request.Order) > 0 && request.Order[0].Column < len(request.Columns) {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
 
-	// Map column names to database column names
-	columnMap := map[string]string{
-		"id":              "id_transaksi",
-		"nomor_invoice":   "nomor_invoice",
-		"tanggal_masuk":   "tanggal_masuk",
-		"status_transaksi": "status_transaksi",
-		"total_harga":     "total_harga",
-		"created_at":      "created_at",
-	}
-
-	if dbColumn, exists := columnMap[orderBy]; exists {
-		orderBy = dbColumn
-	} else {
-		orderBy = "id_transaksi"
-	}
-
-	transactions, totalCount, err := u.transactionRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
-	)
+	transactions, totalCount, err := u.transactionRepo.FindAllWithPagination(request)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +39,7 @@ func (u *transactionUsecase) GetAllTransactionsDataTables(request entities.DataT
 	return response, nil
 }
 
-func (u *transactionUsecase) GetTransactionByID(id int) (*entities.Transaction, error) {
+func (u *transactionUsecase) GetTransactionByID(id int) (entities.Transaction, error) {
 	return u.transactionRepo.FindByID(id)
 }
 
@@ -74,23 +47,51 @@ func (u *transactionUsecase) GetTransactionsByOutletID(outletID int) ([]entities
 	return u.transactionRepo.FindByOutletID(outletID)
 }
 
-func (u *transactionUsecase) GetTransactionDetails(transactionID int) ([]entities.TransactionDetail, error) {
-	return u.transactionRepo.FindDetailsByTransactionID(transactionID)
+func (u *transactionUsecase) GetTransactionDetails(request entities.Transaction) (result entities.TransactionComplete, err error) {
+	details, err := u.transactionRepo.FindDetailsByTransactionID(request.ID)
+
+	if err != nil {
+		return result, err
+	}
+	trx, err := u.transactionRepo.FindByID(request.ID)
+	if err != nil {
+		return result, err
+	}
+
+	result = entities.TransactionComplete{
+		ID:             trx.ID,
+		CustomerID:     trx.CustomerID,
+		CustomerName:   trx.CustomerName,
+		OutletID:       trx.OutletID,
+		OutletName:     trx.OutletName,
+		UserID:         trx.UserID,
+		InvoiceNumber:  trx.InvoiceNumber,
+		EntryDate:      trx.EntryDate,
+		CompletionDate: trx.CompletionDate,
+		PickupDate:     trx.PickupDate,
+		TotalPrice:     trx.TotalPrice,
+		PaidAmount:     trx.PaidAmount,
+		ChangeAmount:   trx.ChangeAmount,
+		Status:         trx.Status,
+		Note:           trx.Note,
+		Detail:         details,
+	}
+	return result, nil
 }
 
 func (u *transactionUsecase) UpdateTransactionStatus(id int, request entities.UpdateTransactionStatusRequest) error {
 	// Validate the status value
 	validStatuses := map[string]bool{
-		"diterima":  true,
-		"diproses":  true,
-		"selesai":   true,
-		"diambil":   true,
+		"diterima": true,
+		"diproses": true,
+		"selesai":  true,
+		"diambil":  true,
 	}
-	
+
 	if !validStatuses[request.Status] {
 		return fmt.Errorf("invalid transaction status: %s", request.Status)
 	}
-	
+
 	return u.transactionRepo.UpdateTransactionStatus(id, request.Status)
 }
 
@@ -100,11 +101,11 @@ func (u *transactionUsecase) UpdatePaymentStatus(id int, request entities.Update
 		"lunas":       true,
 		"belum lunas": true,
 	}
-	
+
 	if !validStatuses[request.Status] {
 		return fmt.Errorf("invalid payment status: %s", request.Status)
 	}
-	
+
 	return u.transactionRepo.UpdatePaymentStatus(id, request.Status)
 }
 
@@ -115,31 +116,31 @@ func (u *transactionUsecase) ProcessPaymentCallback(request entities.PaymentCall
 		"belum lunas": true,
 		"gagal":       true,
 	}
-	
+
 	if !validStatuses[request.PaymentStatus] {
 		return fmt.Errorf("invalid payment status: %s", request.PaymentStatus)
 	}
-	
+
 	// Validate the payment method value
 	validPaymentMethods := map[string]bool{
-		"tunai":     true,
-		"transfer":  true,
-		"e-wallet":  true,
+		"tunai":    true,
+		"transfer": true,
+		"e-wallet": true,
 	}
-	
+
 	if request.PaymentMethod != "" && !validPaymentMethods[request.PaymentMethod] {
 		return fmt.Errorf("invalid payment method: %s", request.PaymentMethod)
 	}
-	
+
 	// First, check if the transaction exists
-	transaction, err := u.transactionRepo.FindByID(request.TransactionID)
+	_, err := u.transactionRepo.FindByID(request.TransactionID)
 	if err != nil {
 		return fmt.Errorf("failed to find transaction: %w", err)
 	}
-	
-	if transaction == nil {
-		return fmt.Errorf("transaction not found with id: %d", request.TransactionID)
-	}
-	
+
+	// if transaction == nil {
+	// 	return fmt.Errorf("transaction not found with id: %d", request.TransactionID)
+	// }
+
 	return u.transactionRepo.UpdatePaymentCallback(request.TransactionID, request)
 }

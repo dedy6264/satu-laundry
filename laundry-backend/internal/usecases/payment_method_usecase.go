@@ -39,38 +39,25 @@ func (u *paymentMethodUsecase) GetAllPaymentMethods() ([]entities.PaymentMethod,
 	return u.paymentMethodRepo.FindAll()
 }
 
-func (u *paymentMethodUsecase) GetAllPaymentMethodsDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// Default ordering
-	orderBy := "id"
-	orderDir := "asc"
-	
-	// If ordering is specified
-	if len(request.Order) > 0 && len(request.Columns) > request.Order[0].Column {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
-	
+func (u *paymentMethodUsecase) GetAllPaymentMethodsDataTables(request entities.DTRequest[entities.PaymentMethod]) (*entities.DataTablesResponse, error) {
+
 	// Get data with pagination
-	paymentMethods, recordsTotal, recordsFiltered, err := u.paymentMethodRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
+	paymentMethods, recordsTotal, err := u.paymentMethodRepo.FindAllWithPagination(
+		request,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create response
 	response := &entities.DataTablesResponse{
 		Draw:            request.Draw,
 		RecordsTotal:    recordsTotal,
-		RecordsFiltered: recordsFiltered,
+		RecordsFiltered: recordsTotal,
 		Data:            paymentMethods,
 	}
-	
+
 	return response, nil
 }
 

@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -69,10 +71,21 @@ func (m *LoggingMiddleware) LogRequestResponse(next echo.HandlerFunc) echo.Handl
 
 		// Log berdasarkan status code
 		if c.Response().Status >= 500 {
+			fmt.Println("a")
 			m.logger.WithFields(logData).Error("Server Error")
 		} else if c.Response().Status >= 400 {
+			fmt.Println("b")
 			m.logger.WithFields(logData).Warn("Client Error")
 		} else {
+			fmt.Println("c")
+			// Try to parse request body as JSON
+			var reqJSON interface{}
+			if len(reqBody) > 0 {
+				if err := json.Unmarshal(reqBody, &reqJSON); err == nil {
+					logData["request_body"] = reqJSON
+				}
+			}
+
 			m.logger.WithFields(logData).Info("Request Processed")
 		}
 

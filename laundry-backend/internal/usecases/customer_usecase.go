@@ -39,38 +39,25 @@ func (u *customerUsecase) GetAllCustomers() ([]entities.Customer, error) {
 	return u.customerRepo.FindAll()
 }
 
-func (u *customerUsecase) GetAllCustomersDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// Default ordering
-	orderBy := "id_pelanggan"
-	orderDir := "asc"
-	
-	// If ordering is specified
-	if len(request.Order) > 0 && len(request.Columns) > request.Order[0].Column {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
-	
+func (u *customerUsecase) GetAllCustomersDataTables(request entities.DTRequest[entities.Customer]) (*entities.DataTablesResponse, error) {
+
 	// Get data with pagination
-	customers, recordsTotal, recordsFiltered, err := u.customerRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
+	customers, recordsTotal, err := u.customerRepo.FindAllWithPagination(
+		request,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create response
 	response := &entities.DataTablesResponse{
 		Draw:            request.Draw,
 		RecordsTotal:    recordsTotal,
-		RecordsFiltered: recordsFiltered,
+		RecordsFiltered: recordsTotal,
 		Data:            customers,
 	}
-	
+
 	return response, nil
 }
 

@@ -2,9 +2,9 @@ package repositories
 
 import (
 	"database/sql"
-	"fmt"
 	"laundry-backend/internal/entities"
 	"log"
+	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -156,7 +156,7 @@ func (r *userAccessPostgresRepository) FindAll() ([]entities.UserAccess, error) 
 	return accesses, nil
 }
 
-func (r *userAccessPostgresRepository) FindAllWithPagination(limit, offset int) ([]entities.UserAccess, int, error) {
+func (r *userAccessPostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.UserAccess]) ([]entities.UserAccess, int, error) {
 	// Count query
 	countQuery := `SELECT COUNT(*) FROM user_access`
 
@@ -171,10 +171,19 @@ func (r *userAccessPostgresRepository) FindAllWithPagination(limit, offset int) 
 		SELECT id_access, username, role, is_active, last_login, 
 		       COALESCE(reference_level,''), COALESCE(reference_id,0), created_at, updated_at
 		FROM user_access
-		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2`
-
-	rows, err := r.db.Query(dataQuery, limit, offset)
+		where true `
+	if request.Data.ID != 0 {
+		dataQuery += ` and id_access = ` + strconv.Itoa(request.Data.ID)
+	}
+	if request.OrderBy != "" {
+		dataQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		dataQuery += ` ORDER BY id_access ASC`
+	}
+	if request.Length != 0 {
+		dataQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
+	}
+	rows, err := r.db.Query(dataQuery)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -262,8 +271,6 @@ func (r *userAccessPostgresRepository) AuthenticateUser(username, password strin
 	}
 
 	// Compare the provided password with the hashed password
-	aa, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	fmt.Println("::::::", string(aa), "::::", userAccess.Password, ":::::", password)
 
 	err = bcrypt.CompareHashAndPassword([]byte(userAccess.Password), []byte(password))
 	if err != nil {

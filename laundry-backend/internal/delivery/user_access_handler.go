@@ -1,7 +1,6 @@
 package delivery
 
 import (
-	"fmt"
 	"laundry-backend/internal/entities"
 	"laundry-backend/internal/usecases"
 	"laundry-backend/internal/utils"
@@ -85,7 +84,7 @@ func (h *UserAccessHandler) GetAllUserAccess(c echo.Context) error {
 
 func (h *UserAccessHandler) GetAllUserAccessDataTables(c echo.Context) error {
 	var (
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.UserAccess]
 		svcName = "GetAllUserAccessDataTables"
 	)
 
@@ -186,7 +185,6 @@ func (h *UserAccessHandler) UserLogin(c echo.Context) error {
 		utils.LoggMsg(svcName, "Username and password are required", nil)
 		return ErrorResponse(c, http.StatusBadRequest, "Username and password are required", "")
 	}
-	fmt.Println("::::::", request)
 	response, err := h.userAccessUsecase.AuthenticateUser(request)
 	if err != nil {
 		utils.LoggMsg(svcName, "Failed to authenticate user", err)

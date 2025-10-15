@@ -2,8 +2,8 @@ package repositories
 
 import (
 	"database/sql"
-	"fmt"
 	"laundry-backend/internal/entities"
+	"strconv"
 )
 
 type transactionPostgresRepository struct {
@@ -16,7 +16,7 @@ func NewTransactionRepository(db *sql.DB) TransactionRepository {
 	}
 }
 
-func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error) {
+func (r *transactionPostgresRepository) FindAll() (response []entities.Transaction, err error) {
 	query := `
 		SELECT 
 		t.id_transaksi,
@@ -45,7 +45,6 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 	}
 	defer rows.Close()
 
-	var transactions []entities.Transaction
 	for rows.Next() {
 		var transaction entities.Transaction
 		var userID sql.NullInt64
@@ -78,98 +77,87 @@ func (r *transactionPostgresRepository) FindAll() ([]entities.Transaction, error
 		// Handle nullable fields
 		if userID.Valid {
 			val := int(userID.Int64)
-			transaction.UserID = &val
+			transaction.UserID = val
 		}
 		if entryDate.Valid {
-			transaction.EntryDate = &entryDate.Time
+			transaction.EntryDate = entryDate.Time
 		}
 		if completionDate.Valid {
-			transaction.CompletionDate = &completionDate.Time
+			transaction.CompletionDate = completionDate.Time
 		}
 		if pickupDate.Valid {
-			transaction.PickupDate = &pickupDate.Time
+			transaction.PickupDate = pickupDate.Time
 		}
 
 		if createdBy.Valid {
-			transaction.CreatedBy = &createdBy.String
+			transaction.CreatedBy = createdBy.String
 		}
 		if updatedBy.Valid {
-			transaction.UpdatedBy = &updatedBy.String
+			transaction.UpdatedBy = updatedBy.String
 		}
 
-		transactions = append(transactions, transaction)
+		response = append(response, transaction)
 	}
 
-	return transactions, nil
+	return response, nil
 }
 
-func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Transaction, int, error) {
+func (r *transactionPostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.Transaction]) (response []entities.Transaction, totalCount int, err error) {
 	// Base query
 	baseQuery := `
-		FROM transaksi t`
+		FROM transaksi where true `
 
 	// Count query
 	countQuery := "SELECT COUNT(*) " + baseQuery
 
 	// Data query
-	dataQuery := `
+	getQuery := `
 		SELECT 
-		t.id_transaksi,
-		t.id_pelanggan,
-		t.id_outlet,
-		t.id_access,
-		t.nomor_invoice,			 
-		t.tanggal_masuk,
-		t.tanggal_selesai,
-		t.tanggal_diambil,			 
-		t.total_harga,
-		t.uang_bayar,
-		t.uang_kembalian,
-		t.status_transaksi,			
-		COALESCE(t.catatan,''),
-		t.created_at,
-		t.updated_at,			
-		t.created_by,
-		t.updated_by
+		id_transaksi,
+		id_pelanggan,
+		id_outlet,
+		id_access,
+		nomor_invoice,			 
+		tanggal_masuk,
+		tanggal_selesai,
+		tanggal_diambil,			 
+		total_harga,
+		uang_bayar,
+		uang_kembalian,
+		status_transaksi,			
+		COALESCE(catatan,''),
+		created_at,
+		updated_at,			
+		created_by,
+		updated_by
 		` + baseQuery
 
-	// Search condition
-	var args []interface{}
-	if search != "" {
-		countQuery += " WHERE t.nomor_invoice ILIKE $1"
-		dataQuery += " WHERE t.nomor_invoice ILIKE $1"
-		args = append(args, "%"+search+"%")
+	if request.Data.ID != 0 {
+		getQuery += ` and id_transaksi = ` + strconv.Itoa(request.Data.ID)
 	}
-
+	if request.Data.CustomerID != 0 {
+		getQuery += ` and id_pelanggan = ` + strconv.Itoa(request.Data.CustomerID)
+	}
+	if request.OrderBy != "" {
+		getQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		getQuery += ` ORDER BY id_transaksi ASC`
+	}
+	if request.Length != 0 {
+		getQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
+	}
 	// Get total count
-	var totalCount int
-	countArgs := make([]interface{}, len(args))
-	copy(countArgs, args)
-	err := r.db.QueryRow(countQuery, countArgs...).Scan(&totalCount)
+	err = r.db.QueryRow(countQuery).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
-
-	// Add ordering
-	if orderBy == "" {
-		orderBy = "t.id_transaksi"
-	}
-	if orderDir == "" {
-		orderDir = "DESC"
-	}
-	dataQuery += fmt.Sprintf(" ORDER BY %s %s LIMIT $%d OFFSET $%d", orderBy, orderDir, len(args)+1, len(args)+2)
-
-	// Add limit and offset
-	args = append(args, limit, offset)
-
 	// Execute data query
-	rows, err := r.db.Query(dataQuery, args...)
+	rows, err := r.db.Query(getQuery)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
 
-	var transactions []entities.Transaction
 	for rows.Next() {
 		var transaction entities.Transaction
 		var userID sql.NullInt64
@@ -202,31 +190,31 @@ func (r *transactionPostgresRepository) FindAllWithPagination(limit, offset int,
 		// Handle nullable fields
 		if userID.Valid {
 			val := int(userID.Int64)
-			transaction.UserID = &val
+			transaction.UserID = val
 		}
 		if entryDate.Valid {
-			transaction.EntryDate = &entryDate.Time
+			transaction.EntryDate = entryDate.Time
 		}
 		if completionDate.Valid {
-			transaction.CompletionDate = &completionDate.Time
+			transaction.CompletionDate = completionDate.Time
 		}
 		if pickupDate.Valid {
-			transaction.PickupDate = &pickupDate.Time
+			transaction.PickupDate = pickupDate.Time
 		}
 		if createdBy.Valid {
-			transaction.CreatedBy = &createdBy.String
+			transaction.CreatedBy = createdBy.String
 		}
 		if updatedBy.Valid {
-			transaction.UpdatedBy = &updatedBy.String
+			transaction.UpdatedBy = updatedBy.String
 		}
 
-		transactions = append(transactions, transaction)
+		response = append(response, transaction)
 	}
 
-	return transactions, totalCount, nil
+	return response, totalCount, nil
 }
 
-func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction, error) {
+func (r *transactionPostgresRepository) FindByID(id int) (response entities.Transaction, err error) {
 	query := `
 		SELECT 
 			t.id_transaksi,
@@ -254,7 +242,7 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 	var entryDate, completionDate, pickupDate sql.NullTime
 	var createdBy, updatedBy sql.NullString
 
-	err := r.db.QueryRow(query, id).Scan(
+	err = r.db.QueryRow(query, id).Scan(
 		&transaction.ID,
 		&transaction.CustomerID,
 		&transaction.OutletID,
@@ -275,34 +263,34 @@ func (r *transactionPostgresRepository) FindByID(id int) (*entities.Transaction,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return response, nil
 		}
-		return nil, err
+		return response, err
 	}
 
 	// Handle nullable fields
 	if userID.Valid {
 		val := int(userID.Int64)
-		transaction.UserID = &val
+		transaction.UserID = val
 	}
 	if entryDate.Valid {
-		transaction.EntryDate = &entryDate.Time
+		transaction.EntryDate = entryDate.Time
 	}
 	if completionDate.Valid {
-		transaction.CompletionDate = &completionDate.Time
+		transaction.CompletionDate = completionDate.Time
 	}
 	if pickupDate.Valid {
-		transaction.PickupDate = &pickupDate.Time
+		transaction.PickupDate = pickupDate.Time
 	}
 
 	if createdBy.Valid {
-		transaction.CreatedBy = &createdBy.String
+		transaction.CreatedBy = createdBy.String
 	}
 	if updatedBy.Valid {
-		transaction.UpdatedBy = &updatedBy.String
+		transaction.UpdatedBy = updatedBy.String
 	}
 
-	return &transaction, nil
+	return response, nil
 }
 
 func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities.Transaction, error) {
@@ -368,22 +356,22 @@ func (r *transactionPostgresRepository) FindByOutletID(outletID int) ([]entities
 		// Handle nullable fields
 		if userID.Valid {
 			val := int(userID.Int64)
-			transaction.UserID = &val
+			transaction.UserID = val
 		}
 		if entryDate.Valid {
-			transaction.EntryDate = &entryDate.Time
+			transaction.EntryDate = entryDate.Time
 		}
 		if completionDate.Valid {
-			transaction.CompletionDate = &completionDate.Time
+			transaction.CompletionDate = completionDate.Time
 		}
 		if pickupDate.Valid {
-			transaction.PickupDate = &pickupDate.Time
+			transaction.PickupDate = pickupDate.Time
 		}
 		if createdBy.Valid {
-			transaction.CreatedBy = &createdBy.String
+			transaction.CreatedBy = createdBy.String
 		}
 		if updatedBy.Valid {
-			transaction.UpdatedBy = &updatedBy.String
+			transaction.UpdatedBy = updatedBy.String
 		}
 
 		transactions = append(transactions, transaction)
@@ -441,19 +429,19 @@ func (r *transactionPostgresRepository) FindDetailsByTransactionID(transactionID
 
 		// Handle nullable fields
 		if quantity.Valid {
-			detail.Quantity = &quantity.Float64
+			detail.Quantity = quantity.Float64
 		}
 		if price.Valid {
-			detail.Price = &price.Float64
+			detail.Price = price.Float64
 		}
 		if subtotal.Valid {
-			detail.Subtotal = &subtotal.Float64
+			detail.Subtotal = subtotal.Float64
 		}
 		if createdBy.Valid {
-			detail.CreatedBy = &createdBy.String
+			detail.CreatedBy = createdBy.String
 		}
 		if updatedBy.Valid {
-			detail.UpdatedBy = &updatedBy.String
+			detail.UpdatedBy = updatedBy.String
 		}
 
 		details = append(details, detail)

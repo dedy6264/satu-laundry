@@ -23,7 +23,7 @@ func NewTransactionHandler(transactionUsecase usecases.TransactionUsecase) *Tran
 func (h *TransactionHandler) GetAllTransactions(c echo.Context) error {
 	var (
 		svcName = "GetAllTransactions"
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.Transaction]
 	)
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Failed to bind request", err)
@@ -85,14 +85,14 @@ func (h *TransactionHandler) GetTransactionsByOutletID(c echo.Context) error {
 func (h *TransactionHandler) GetTransactionDetails(c echo.Context) error {
 	var (
 		svcName = "GetTransactionDetails"
+		request entities.Transaction
 	)
-	transactionID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utils.LoggMsg(svcName, "Invalid transaction ID", err)
-		return ErrorResponse(c, http.StatusBadRequest, "Invalid transaction ID", err.Error())
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Failed to bind request", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
 
-	details, err := h.transactionUsecase.GetTransactionDetails(transactionID)
+	details, err := h.transactionUsecase.GetTransactionDetails(request)
 	if err != nil {
 		utils.LoggMsg(svcName, "Failed to get transaction details", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to get transaction details", err.Error())
@@ -106,7 +106,7 @@ func (h *TransactionHandler) UpdateTransactionStatus(c echo.Context) error {
 		svcName = "UpdateTransactionStatus"
 		request entities.UpdateTransactionStatusRequest
 	)
-	
+
 	transactionID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utils.LoggMsg(svcName, "Invalid transaction ID", err)
@@ -131,7 +131,7 @@ func (h *TransactionHandler) UpdatePaymentStatus(c echo.Context) error {
 		svcName = "UpdatePaymentStatus"
 		request entities.UpdatePaymentStatusRequest
 	)
-	
+
 	transactionID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utils.LoggMsg(svcName, "Invalid transaction ID", err)

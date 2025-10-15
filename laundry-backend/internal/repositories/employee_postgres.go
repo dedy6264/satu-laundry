@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"laundry-backend/internal/entities"
-	"strings"
+	"strconv"
 )
 
 type employeePostgresRepository struct {
@@ -25,7 +25,9 @@ func (r *employeePostgresRepository) Create(employee *entities.Employee) error {
 func (r *employeePostgresRepository) FindByID(id int) (*entities.Employee, error) {
 	query := `SELECT 
 	a.id_pegawai,
-	a.id_outlet, 
+	a.id_outlet,
+	b.id_cabang,
+	c.id_brand,
 	a.nik, 
 	a.nama_lengkap, 
 	a.email, 
@@ -38,13 +40,19 @@ func (r *employeePostgresRepository) FindByID(id int) (*entities.Employee, error
 	a.tanggal_masuk, 
 	a.status, 
 	a.created_at, 
-	a.updated_at FROM pegawai as a WHERE id_pegawai = $1`
+	a.updated_at FROM pegawai as a 
+	join outlet as b on b.id_outlet=a.id_outlet
+	join cabang as c on c.id_cabang=b.id_cabang
+	join brand as d on d.id_brand=c.id_brand
+	WHERE id_pegawai = $1`
 	row := r.db.QueryRow(query, id)
 
 	var employee entities.Employee
 	err := row.Scan(
 		&employee.ID,
 		&employee.OutletID,
+		&employee.CabangID,
+		&employee.BrandID,
 		&employee.NIK,
 		&employee.Name,
 		&employee.Email,
@@ -60,6 +68,8 @@ func (r *employeePostgresRepository) FindByID(id int) (*entities.Employee, error
 		&employee.UpdatedAt,
 	)
 	if err != nil {
+		fmt.Println(query)
+
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -106,86 +116,55 @@ func (r *employeePostgresRepository) FindAll() ([]entities.Employee, error) {
 	return employees, nil
 }
 
-func (r *employeePostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Employee, int, int, error) {
-	// Validate orderBy field to prevent SQL injection
-	validFields := map[string]bool{
-		"id_pegawai":    true,
-		"id_outlet":     true,
-		"nik":           true,
-		"nama_lengkap":  true,
-		"email":         true,
-		"telepon":       true,
-		"alamat":        true,
-		"tanggal_lahir": true,
-		"jenis_kelamin": true,
-		"posisi":        true,
-		"gaji":          true,
-		"tanggal_masuk": true,
-		"status":        true,
-		"created_at":    true,
-		"updated_at":    true,
-	}
-
-	// Map field names to database column names
-	fieldMap := map[string]string{
-		"id_pegawai":    "id_pegawai",
-		"id_outlet":     "id_outlet",
-		"nik":           "nik",
-		"nama_lengkap":  "nama_lengkap",
-		"email":         "email",
-		"telepon":       "telepon",
-		"alamat":        "alamat",
-		"tanggal_lahir": "tanggal_lahir",
-		"jenis_kelamin": "jenis_kelamin",
-		"posisi":        "posisi",
-		"gaji":          "gaji",
-		"tanggal_masuk": "tanggal_masuk",
-		"status":        "status",
-		"created_at":    "created_at",
-		"updated_at":    "updated_at",
-	}
-
-	// Default to id_pegawai if orderBy is not valid
-	if !validFields[orderBy] {
-		orderBy = "id_pegawai"
-	}
-
-	// Default to asc if orderDir is not valid
-	if orderDir != "asc" && orderDir != "desc" {
-		orderDir = "asc"
-	}
+func (r *employeePostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.Employee]) ([]entities.Employee, int, error) {
 
 	// Build the query
-	baseQuery := `SELECT id_pegawai, id_outlet, nik, nama_lengkap, email, telepon, alamat, tanggal_lahir, jenis_kelamin, posisi, gaji, tanggal_masuk, status, created_at, updated_at FROM pegawai`
+	baseQuery := `SELECT 
+	a.id_pegawai,
+	a.id_outlet,
+	b.id_cabang,
+	c.id_brand,
+	a.nik,
+	a.nama_lengkap,
+	a.email,
+	a.telepon,
+	a.alamat,
+	a.tanggal_lahir,
+	a.jenis_kelamin,
+	a.posisi,
+	a.gaji,
+	a.tanggal_masuk,
+	a.status,
+	a.created_at,
+	a.updated_at FROM pegawai as a
+	join outlet as b on b.id_outlet=a.id_outlet
+	join cabang as c on c.id_cabang=b.id_cabang
+	join brand as d on d.id_brand=c.id_brand where true`
 	countQuery := `SELECT COUNT(*) FROM pegawai`
-
-	var args []interface{}
-	argIndex := 1
-
-	// Add search condition if provided
-	if search != "" {
-		search = strings.ToLower(search)
-		baseQuery += fmt.Sprintf(` WHERE (LOWER(nik) LIKE $%d OR LOWER(nama_lengkap) LIKE $%d OR LOWER(email) LIKE $%d)`, argIndex, argIndex+1, argIndex+2)
-		countQuery += fmt.Sprintf(` WHERE (LOWER(nik) LIKE $%d OR LOWER(nama_lengkap) LIKE $%d OR LOWER(email) LIKE $%d)`, argIndex, argIndex+1, argIndex+2)
-		args = append(args, "%"+search+"%", "%"+search+"%", "%"+search+"%")
-		argIndex += 3
+	if request.Data.ID != 0 {
+		baseQuery += ` and a.id_pegawai = ` + strconv.Itoa(request.Data.ID)
 	}
-
-	// Add ordering
-	dbOrderBy := fieldMap[orderBy]
-	if dbOrderBy == "" {
-		dbOrderBy = "id_pegawai"
+	if request.Data.OutletID != 0 {
+		baseQuery += ` and a.id_outlet = ` + strconv.Itoa(request.Data.OutletID)
 	}
-	baseQuery += fmt.Sprintf(` ORDER BY %s %s`, dbOrderBy, strings.ToUpper(orderDir))
-
-	// Add pagination
-	baseQuery += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, argIndex, argIndex+1)
-	args = append(args, limit, offset)
-
+	if request.Data.CabangID != 0 {
+		baseQuery += ` and c.id_cabang = ` + strconv.Itoa(request.Data.CabangID)
+	}
+	if request.Data.BrandID != 0 {
+		baseQuery += ` and d.id_brand = ` + strconv.Itoa(request.Data.BrandID)
+	}
+	if request.OrderBy != "" {
+		baseQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		baseQuery += ` ORDER BY a.id_pegawai ASC`
+	}
+	if request.Length != 0 {
+		baseQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
+	}
 	// Execute the data query
-	rows, err := r.db.Query(baseQuery, args...)
+	rows, err := r.db.Query(baseQuery)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -195,6 +174,8 @@ func (r *employeePostgresRepository) FindAllWithPagination(limit, offset int, se
 		err := rows.Scan(
 			&employee.ID,
 			&employee.OutletID,
+			&employee.CabangID,
+			&employee.BrandID,
 			&employee.NIK,
 			&employee.Name,
 			&employee.Email,
@@ -210,36 +191,24 @@ func (r *employeePostgresRepository) FindAllWithPagination(limit, offset int, se
 			&employee.UpdatedAt,
 		)
 		if err != nil {
-			return nil, 0, 0, err
+			return nil, 0, err
 		}
 
 		employees = append(employees, employee)
 	}
 
 	// Execute the count query
-	var recordsTotal, recordsFiltered int
-	err = r.db.QueryRow(countQuery, args[:len(args)-2]...).Scan(&recordsTotal)
+	var recordsTotal int
+	err = r.db.QueryRow(countQuery).Scan(&recordsTotal)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 
-	// If search is applied, we need to get the filtered count
-	if search != "" {
-		searchArgs := args[:len(args)-2] // Remove limit and offset args
-		err = r.db.QueryRow(countQuery, searchArgs...).Scan(&recordsFiltered)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-	} else {
-		recordsFiltered = recordsTotal
-	}
-
-	return employees, recordsTotal, recordsFiltered, nil
+	return employees, recordsTotal, nil
 }
 
 func (r *employeePostgresRepository) Update(employee *entities.Employee) error {
 	query := `UPDATE pegawai SET id_outlet = $1, nik = $2, nama_lengkap = $3, email = $4, telepon = $5, alamat = $6, tanggal_lahir = $7, jenis_kelamin = $8, posisi = $9, gaji = $10, tanggal_masuk = $11, status = $12,  updated_at = NOW() WHERE id_pegawai = $13`
-	fmt.Println(":::", query)
 	_, err := r.db.Exec(query, employee.OutletID, employee.NIK, employee.Name, employee.Email, employee.Phone, employee.Address, employee.BirthDate, employee.Gender, employee.Position, employee.Salary, employee.JoinDate, employee.Status, employee.ID)
 	return err
 }

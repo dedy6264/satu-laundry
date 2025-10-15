@@ -87,7 +87,7 @@ func (h *OutletHandler) GetOutletsByCabangID(c echo.Context) error {
 func (h *OutletHandler) GetAllOutlets(c echo.Context) error {
 	var (
 		svcName = "GetAllOutlets"
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.Outlet]
 	)
 	// Ambil token dari context
 	// user := c.Get("user").(*jwt.Token)

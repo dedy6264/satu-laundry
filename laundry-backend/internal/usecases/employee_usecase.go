@@ -44,24 +44,11 @@ func (u *employeeUsecase) GetAllEmployees() ([]entities.Employee, error) {
 	return u.employeeRepo.FindAll()
 }
 
-func (u *employeeUsecase) GetAllEmployeesDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// Default ordering
-	orderBy := "id_pegawai"
-	orderDir := "asc"
-
-	// If ordering is specified
-	if len(request.Order) > 0 && len(request.Columns) > request.Order[0].Column {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
+func (u *employeeUsecase) GetAllEmployeesDataTables(request entities.DTRequest[entities.Employee]) (*entities.DataTablesResponse, error) {
 
 	// Get data with pagination
-	employees, recordsTotal, recordsFiltered, err := u.employeeRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
+	employees, recordsTotal, err := u.employeeRepo.FindAllWithPagination(
+		request,
 	)
 
 	if err != nil {
@@ -72,7 +59,7 @@ func (u *employeeUsecase) GetAllEmployeesDataTables(request entities.DataTablesR
 	response := &entities.DataTablesResponse{
 		Draw:            request.Draw,
 		RecordsTotal:    recordsTotal,
-		RecordsFiltered: recordsFiltered,
+		RecordsFiltered: recordsTotal,
 		Data:            employees,
 	}
 

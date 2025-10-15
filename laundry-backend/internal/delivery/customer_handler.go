@@ -30,11 +30,19 @@ func (h *CustomerHandler) CreateCustomer(c echo.Context) error {
 		utils.LoggMsg(svcName, "Invalid request format", err)
 		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
+	if request.OutletID == 0 {
+		utils.LoggMsg(svcName, "Outlet ID is required", nil)
+		return ErrorResponse(c, http.StatusBadRequest, "Outlet ID is required", "")
+	}
 
-	// Validate required fields
 	if request.Name == "" {
 		utils.LoggMsg(svcName, "Name is required", nil)
 		return ErrorResponse(c, http.StatusBadRequest, "Name is required", "")
+	}
+
+	if request.Phone == "" {
+		utils.LoggMsg(svcName, "Phone is required", nil)
+		return ErrorResponse(c, http.StatusBadRequest, "Phone is required", "")
 	}
 	request.Name = strings.ToUpper(request.Name)
 	err := h.customerUsecase.CreateCustomer(request)
@@ -45,7 +53,24 @@ func (h *CustomerHandler) CreateCustomer(c echo.Context) error {
 
 	return MessageResponse(c, http.StatusCreated, "Customer created successfully")
 }
+func (h *CustomerHandler) GetAllCustomers(c echo.Context) error {
+	var (
+		svcName = "GetAllCustomers"
+		request entities.DTRequest[entities.Customer]
+	)
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Invalid request format", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
+	}
 
+	response, err := h.customerUsecase.GetAllCustomersDataTables(request)
+	if err != nil {
+		utils.LoggMsg(svcName, "Failed to get customers", err)
+		return ErrorResponse(c, http.StatusInternalServerError, "Failed to get customers", err.Error())
+	}
+
+	return SuccessResponse(c, http.StatusOK, "Customers retrieved successfully", response)
+}
 func (h *CustomerHandler) GetCustomerByID(c echo.Context) error {
 	var (
 		svcName = "GetCustomerByID"
@@ -69,7 +94,6 @@ func (h *CustomerHandler) GetCustomerByID(c echo.Context) error {
 
 	return SuccessResponse(c, http.StatusOK, "Customer retrieved successfully", customer)
 }
-
 func (h *CustomerHandler) GetCustomersByOutletID(c echo.Context) error {
 	var (
 		svcName = "GetCustomersByOutletID"
@@ -88,30 +112,10 @@ func (h *CustomerHandler) GetCustomersByOutletID(c echo.Context) error {
 
 	return SuccessResponse(c, http.StatusOK, "Customers retrieved successfully", customers)
 }
-
-func (h *CustomerHandler) GetAllCustomers(c echo.Context) error {
-	var (
-		svcName = "GetAllCustomers"
-		request entities.DataTablesRequest
-	)
-	if err := c.Bind(&request); err != nil {
-		utils.LoggMsg(svcName, "Invalid request format", err)
-		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
-	}
-
-	response, err := h.customerUsecase.GetAllCustomersDataTables(request)
-	if err != nil {
-		utils.LoggMsg(svcName, "Failed to get customers", err)
-		return ErrorResponse(c, http.StatusInternalServerError, "Failed to get customers", err.Error())
-	}
-
-	return SuccessResponse(c, http.StatusOK, "Customers retrieved successfully", response)
-}
-
 func (h *CustomerHandler) GetAllCustomersDataTables(c echo.Context) error {
 	var (
 		svcName = "GetAllCustomersDataTables"
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.Customer]
 	)
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Invalid request format", err)
@@ -126,7 +130,6 @@ func (h *CustomerHandler) GetAllCustomersDataTables(c echo.Context) error {
 
 	return SuccessResponse(c, http.StatusOK, "Customers retrieved successfully", response)
 }
-
 func (h *CustomerHandler) UpdateCustomer(c echo.Context) error {
 	var (
 		svcName = "UpdateCustomer"
@@ -151,7 +154,6 @@ func (h *CustomerHandler) UpdateCustomer(c echo.Context) error {
 
 	return MessageResponse(c, http.StatusOK, "Customer updated successfully")
 }
-
 func (h *CustomerHandler) DeleteCustomer(c echo.Context) error {
 	var (
 		svcName = "DeleteCustomer"

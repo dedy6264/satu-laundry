@@ -2,8 +2,8 @@ package repositories
 
 import (
 	"database/sql"
-	"fmt"
 	"laundry-backend/internal/entities"
+	"strconv"
 )
 
 type serviceCategoryPostgresRepository struct {
@@ -86,52 +86,40 @@ func (r *serviceCategoryPostgresRepository) FindAll() ([]entities.ServiceCategor
 	return categories, nil
 }
 
-func (r *serviceCategoryPostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.ServiceCategory, int, int, error) {
+func (r *serviceCategoryPostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.ServiceCategory]) ([]entities.ServiceCategory, int, error) {
 	// Base query
 	baseQuery := `
-		FROM kategori_layanan k`
+		FROM kategori_layanan where true `
 
 	// Count query
 	countQuery := "SELECT COUNT(*) " + baseQuery
 
 	// Data query
 	dataQuery := `
-		SELECT k.id_kategori, k.nama_kategori, k.deskripsi, k.created_at, k.updated_at
+		SELECT id_kategori, nama_kategori, deskripsi, created_at, updated_at
 		` + baseQuery
-
-	// Search condition
-	var args []interface{}
-	if search != "" {
-		countQuery += " WHERE k.nama_kategori ILIKE $1"
-		dataQuery += " WHERE k.nama_kategori ILIKE $1"
-		args = append(args, "%"+search+"%")
+	if request.Data.ID != 0 {
+		baseQuery += ` and id_kategori = ` + strconv.Itoa(request.Data.ID)
 	}
-
+	if request.OrderBy != "" {
+		baseQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		baseQuery += ` ORDER BY id_kategori ASC`
+	}
+	if request.Length != 0 {
+		baseQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
+	}
 	// Get total count
 	var totalCount int
-	countArgs := make([]interface{}, len(args))
-	copy(countArgs, args)
-	err := r.db.QueryRow(countQuery, countArgs...).Scan(&totalCount)
+	err := r.db.QueryRow(countQuery).Scan(&totalCount)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
-
-	// Add ordering
-	if orderBy == "" {
-		orderBy = "k.id_kategori"
-	}
-	if orderDir == "" {
-		orderDir = "ASC"
-	}
-	dataQuery += fmt.Sprintf(" ORDER BY %s %s LIMIT $%d OFFSET $%d", orderBy, orderDir, len(args)+1, len(args)+2)
-
-	// Add limit and offset
-	args = append(args, limit, offset)
 
 	// Execute data query
-	rows, err := r.db.Query(dataQuery, args...)
+	rows, err := r.db.Query(dataQuery)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -146,13 +134,13 @@ func (r *serviceCategoryPostgresRepository) FindAllWithPagination(limit, offset 
 			&category.UpdatedAt,
 		)
 		if err != nil {
-			return nil, 0, 0, err
+			return nil, 0, err
 		}
 		categories = append(categories, category)
 	}
 
 	// Return categories, total count, filtered count, and error
-	return categories, totalCount, totalCount, nil
+	return categories, totalCount, nil
 }
 
 func (r *serviceCategoryPostgresRepository) Update(category *entities.ServiceCategory) error {

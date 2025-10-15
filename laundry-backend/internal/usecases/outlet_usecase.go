@@ -58,24 +58,11 @@ func (u *outletUsecase) GetAllOutlets() ([]entities.Outlet, error) {
 	return u.outletRepo.FindAll(entities.Outlet{})
 }
 
-func (u *outletUsecase) GetAllOutletsDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// Default ordering
-	orderBy := "id"
-	orderDir := "asc"
-
-	// If ordering is specified
-	if len(request.Order) > 0 && len(request.Columns) > request.Order[0].Column {
-		orderBy = request.Columns[request.Order[0].Column].Data
-		orderDir = request.Order[0].Dir
-	}
+func (u *outletUsecase) GetAllOutletsDataTables(request entities.DTRequest[entities.Outlet]) (*entities.DataTablesResponse, error) {
 
 	// Get data with pagination
-	outlets, recordsTotal, recordsFiltered, err := u.outletRepo.FindAllWithPagination(
-		request.Length,
-		request.Start,
-		request.Search.Value,
-		orderBy,
-		orderDir,
+	outlets, recordsTotal, err := u.outletRepo.FindAllWithPagination(
+		request,
 	)
 
 	if err != nil {
@@ -86,7 +73,7 @@ func (u *outletUsecase) GetAllOutletsDataTables(request entities.DataTablesReque
 	response := &entities.DataTablesResponse{
 		Draw:            request.Draw,
 		RecordsTotal:    recordsTotal,
-		RecordsFiltered: recordsFiltered,
+		RecordsFiltered: recordsTotal,
 		Data:            outlets,
 	}
 

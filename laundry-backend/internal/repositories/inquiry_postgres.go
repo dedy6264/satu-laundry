@@ -19,20 +19,20 @@ func NewInquiryRepository(db *sql.DB, employeeRepo EmployeeRepository) InquiryRe
 	}
 }
 
-func (r *inquiryPostgresRepository) ValidateEmployee(id int) (*entities.Employee, error) {
+func (r *inquiryPostgresRepository) ValidateEmployee(id int) (response entities.Employee, err error) {
 	// Use the employee repository to find the employee by ID
 	employee, err := r.employeeRepo.FindByID(id)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 
 	// If employee is not found, return nil
 	if employee == nil {
-		return nil, nil
+		return response, nil
 	}
 
 	// Employee exists, return the employee data
-	return employee, nil
+	return response, nil
 }
 
 func (r *inquiryPostgresRepository) ValidateCustomer(id int) (bool, error) {
@@ -53,7 +53,7 @@ func (r *inquiryPostgresRepository) BeginTransaction() (*sql.Tx, error) {
 	return r.db.Begin()
 }
 
-func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transaction *entities.Transaction) (int, error) {
+func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transaction entities.Transaction) (int, error) {
 	query := `INSERT INTO transaksi (
 
 		id_pelanggan, 
@@ -110,51 +110,50 @@ func (r *inquiryPostgresRepository) InsertTransactionWithTx(tx *sql.Tx, transact
 	return id, nil
 }
 
-func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, detail *entities.TransactionDetail) error {
-	query := `INSERT INTO detail_transaksi (
-			id_transaksi,
-			id_layanan,
-			kuantitas,
-			harga_satuan,
-			subtotal,
-			status_pengerjaan,
-			created_at,
-			updated_at,
-			created_by,
-			updated_by
-	) VALUES (?,?,?,?,?,?,?,?,?,?
-	) RETURNING id_detail`
+func (r *inquiryPostgresRepository) InsertTransactionDetailWithTx(tx *sql.Tx, detail []entities.TransactionDetail) (err error) {
+	for _, d := range detail {
+		query := `INSERT INTO detail_transaksi (
+				id_transaksi,
+				id_layanan,
+				kuantitas,
+				harga_satuan,
+				subtotal,
+				status_pengerjaan,
+				created_at,
+				updated_at,
+				created_by,
+				updated_by
+		) VALUES (?,?,?,?,?,?,?,?,?,?) `
 
-	var id int
-	query = utils.QuerySupport(query)
-	err := tx.QueryRow(
-		query,
-		detail.TransactionID,
-		detail.ServiceID,
-		detail.Quantity,
-		detail.Price,
-		detail.Subtotal,
-		detail.Status,
-		detail.CreatedAt,
-		detail.UpdatedAt,
-		detail.CreatedBy,
-		detail.UpdatedBy,
-	).Scan(&id)
+		query = utils.QuerySupport(query)
+		_, err = tx.Exec(
+			query,
+			d.TransactionID,
+			d.ServiceID,
+			d.Quantity,
+			d.Price,
+			d.Subtotal,
+			d.Status,
+			d.CreatedAt,
+			d.UpdatedAt,
+			d.CreatedBy,
+			d.UpdatedBy,
+		)
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+
+		// Set default values for timestamps
+		now := time.Now()
+		d.CreatedAt = now
+		d.UpdatedAt = now
 	}
-
-	detail.ID = id
-	// Set default values for timestamps
-	now := time.Now()
-	detail.CreatedAt = now
-	detail.UpdatedAt = now
-
 	return nil
+
 }
 
-func (r *inquiryPostgresRepository) InsertPaymentWithTx(tx *sql.Tx, payment *entities.Payment) error {
+func (r *inquiryPostgresRepository) InsertPaymentWithTx(tx *sql.Tx, payment entities.Payment) error {
 	query := `INSERT INTO pembayaran (
 			id_transaksi,
 			tanggal_bayar,
@@ -200,7 +199,7 @@ func (r *inquiryPostgresRepository) InsertPaymentWithTx(tx *sql.Tx, payment *ent
 	return nil
 }
 
-func (r *inquiryPostgresRepository) InsertHistoryStatusTransactionWithTx(tx *sql.Tx, history *entities.HistoryStatusTransaction) error {
+func (r *inquiryPostgresRepository) InsertHistoryStatusTransactionWithTx(tx *sql.Tx, history entities.HistoryStatusTransaction) error {
 	query := `INSERT INTO history_status_transaksi (
 			id_transaksi,
 			status_lama,

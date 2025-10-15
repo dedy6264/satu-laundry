@@ -86,7 +86,7 @@ func (h *CabangHandler) GetCabangsByBrandID(c echo.Context) error {
 func (h *CabangHandler) GetAllCabangs(c echo.Context) error {
 	var (
 		svcName = "GetAllCabangs"
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.Cabang]
 	)
 
 	if err := c.Bind(&request); err != nil {

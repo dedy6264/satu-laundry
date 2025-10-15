@@ -67,7 +67,7 @@ func (h *BrandHandler) GetBrandByID(c echo.Context) error {
 func (h *BrandHandler) GetAllBrands(c echo.Context) error {
 	var (
 		svcName = "GetAllBrands"
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.Brand]
 	)
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Failed to bind request", err)

@@ -40,18 +40,23 @@ func NewInquiryUsecase(inquiryRepo repositories.InquiryRepository,
 	}
 }
 
-func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims jwt.MapClaims) (response *entities.InquiryResponse, err error) {
+func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims jwt.MapClaims) (response entities.InquiryResponse, err error) {
 	var (
-		t        = time.Now()
-		outlerId int
+		t          = time.Now()
+		outletId   int
+		brandId    int
+		detail     entities.TransactionDetail
+		details    []entities.TransactionDetail
+		grandTotal float64
 	)
+
 	// 1. validasi user access
 	userAccess, err := u.userAccessRepo.FindByID(request.UserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("invalid userAccess")
+			return response, errors.New("invalid userAccess")
 		}
-		return nil, err
+		return response, err
 	}
 	// 2. get outlet
 	if userAccess.ReferenceLevel != "cabang" {
@@ -59,21 +64,23 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 		case "pegawai":
 			employee, err := u.employeeRepo.FindByID(userAccess.ReferenceID)
 			if err != nil {
-				return nil, err
+				return response, err
 			}
-			outlerId = employee.OutletID
+			outletId = employee.OutletID
+			brandId = employee.BrandID
 		case "outlet":
 			outlet, err := u.outletRepo.FindByID(userAccess.ReferenceID)
 			if err != nil {
-				return nil, err
+				return response, err
 			}
-			outlerId = outlet.ID
+			outletId = outlet.ID
+			brandId = outlet.BrandID
 		default:
-			return nil, errors.New("Invalid Reference Level")
+			return response, errors.New("Invalid Reference Level")
 		}
 	} else {
 		if request.OutletID == 0 {
-			return nil, errors.New("Outlet ID CAnnot be Null")
+			return response, errors.New("Outlet ID CAnnot be Null")
 		}
 		//validasi outlet
 		outletArr, err := u.outletRepo.FindAll(entities.Outlet{
@@ -82,97 +89,123 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 		})
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return nil, errors.New("invalid Package")
+				return response, errors.New("invalid Package")
 			}
-			return nil, err
+			return response, err
 		}
 		if len(outletArr) == 0 {
-			return nil, errors.New("invalid OutletID")
+			return response, errors.New("invalid OutletID")
 		}
+		//get brands
+		outlet, err := u.outletRepo.FindByID(request.OutletID)
+		if err != nil {
+			return response, err
+		}
+		outletId = outlet.ID
+
+		brandId = outlet.BrandID
 	}
 	// 3. Validasi paket layanan
-	servicePackage, err := u.serviceRepo.FindByID(request.ServicePackageID)
+	servicePackage, err := u.serviceRepo.FindAll(entities.Service{
+		BrandID: brandId,
+		ID:      request.ServicePackageID,
+	}) //find apakah paket itu tersedia untuk brand kita?
+
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("invalid Package")
+			return response, errors.New("invalid Package")
 		}
-		return nil, err
+		return response, err
 	}
-
+	for _, data := range request.Product {
+		for _, v := range servicePackage {
+			if data.ServicePackageID == v.ID {
+				grandTotal = grandTotal + (v.Price * data.Quantity)
+			}
+		}
+	}
 	// 4. Validate customer
 	valid, err := u.inquiryRepo.ValidateCustomer(request.CustomerID)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	if !valid {
-		return nil, errors.New("invalid customer")
+		return response, errors.New("invalid customer")
 	}
 	// 5. validasi payment method
 	paymentMethod, err := u.paymentRepo.FindByID(request.PaymentMethodID)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
-
-	// Calculate subtotal
-	subtotal := servicePackage.Price * request.Quantity
 
 	// Begin database transaction
 	tx, err := u.inquiryRepo.BeginTransaction()
 	if err != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+		return response, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	// Create transaction entity
 	if request.OutletID == 0 {
-		request.OutletID = outlerId
+		request.OutletID = outletId
 	}
-	transaction := &entities.Transaction{
+	transaction := entities.Transaction{
 		CustomerID:    request.CustomerID,
 		OutletID:      request.OutletID,
 		InvoiceNumber: generateInvoiceNumber(),
-		EntryDate:     &t,
+		EntryDate:     t,
 		Status:        "diterima", // Default status
 		Note:          request.Note,
 		CreatedAt:     t,
 		UpdatedAt:     t,
-		CreatedBy:     &userAccess.Username,
-		UpdatedBy:     &userAccess.Username,
-		UserID:        &userAccess.ID,
-		TotalPrice:    subtotal,
+		CreatedBy:     userAccess.Username,
+		UpdatedBy:     userAccess.Username,
+		UserID:        userAccess.ID,
+		TotalPrice:    grandTotal,
 	}
 
-	// Insert transaction with transaction
+	//1. Insert transaction with transaction
 	id, err := u.inquiryRepo.InsertTransactionWithTx(tx, transaction)
 	if err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("failed to insert transaction: %w", err)
+		return response, fmt.Errorf("failed to insert transaction: %w", err)
 	}
 
-	// Create transaction detail
-	detail := &entities.TransactionDetail{
-		TransactionID: id,
-		ServiceID:     request.ServicePackageID,
-		Quantity:      &request.Quantity,
-		Price:         &servicePackage.Price,
-		Subtotal:      &subtotal,
-		CreatedAt:     t,
-		UpdatedAt:     t,
-		CreatedBy:     &userAccess.Username,
-		UpdatedBy:     &userAccess.Username,
+	for _, data := range request.Product {
+		for _, v := range servicePackage {
+			if data.ServicePackageID == v.ID {
+				detail = entities.TransactionDetail{
+					TransactionID: id,
+					ServiceID:     v.ID,
+					Quantity:      data.Quantity,
+					Price:         v.Price,
+					Subtotal:      v.Price * data.Quantity,
+					CreatedAt:     t,
+					UpdatedAt:     t,
+					CreatedBy:     userAccess.Username,
+					UpdatedBy:     userAccess.Username,
+				}
+				details = append(details, detail)
+				request.Quantity = request.Quantity + data.Quantity
+			}
+		}
+	}
+	if len(details) != len(request.Product) {
+		tx.Rollback()
+		return response, errors.New("invalid Transaction")
 	}
 
-	// Insert transaction detail with transaction
-	err = u.inquiryRepo.InsertTransactionDetailWithTx(tx, detail)
+	//2. Insert transaction detail with transaction
+	err = u.inquiryRepo.InsertTransactionDetailWithTx(tx, details)
 	if err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("failed to insert transaction detail: %w", err)
+		return response, fmt.Errorf("failed to insert transaction detail: %w", err)
 	}
 
 	// Create initial payment record with default values
-	payment := &entities.Payment{
+	payment := entities.Payment{
 		TransactionID:   id,
 		PaymentMethodID: paymentMethod.ID,
-		PaymentDate:     &t,
+		PaymentDate:     t,
 		Amount:          0,                        // Default to 0 as no payment has been made yet
 		Method:          paymentMethod.NamaMetode, // Default to empty as no payment method selected yet
 		CreatedAt:       t,
@@ -183,15 +216,15 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 	err = u.inquiryRepo.InsertPaymentWithTx(tx, payment)
 	if err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("failed to insert payment: %w", err)
+		return response, fmt.Errorf("failed to insert payment: %w", err)
 	}
 
 	// Create initial history status transaction record
-	history := &entities.HistoryStatusTransaction{
+	history := entities.HistoryStatusTransaction{
 		TransactionID: id,
 		OldStatus:     "diterima", // No old status as this is the initial status
 		NewStatus:     "diterima",
-		ChangeTime:    &t,
+		ChangeTime:    t,
 		Description:   "Transaksi baru dibuat",
 		CreatedAt:     t,
 		UpdatedAt:     t,
@@ -201,21 +234,21 @@ func (u *inquiryUsecase) ProcessInquiry(request entities.InquiryRequest, claims 
 	err = u.inquiryRepo.InsertHistoryStatusTransactionWithTx(tx, history)
 	if err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("failed to insert history status transaction: %w", err)
+		return response, fmt.Errorf("failed to insert history status transaction: %w", err)
 	}
 
 	// Commit the transaction
 	err = tx.Commit()
 	if err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+		return response, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	// Prepare the response
-	response = &entities.InquiryResponse{
-		Transaction:        *transaction,
-		TransactionDetails: []entities.TransactionDetail{*detail},
-		Payment:            *payment,
-		History:            *history,
+	response = entities.InquiryResponse{
+		Transaction:        transaction,
+		TransactionDetails: details, // Use slice of pointers, not dereferenced
+		Payment:            payment,
+		History:            history,
 	}
 
 	return response, nil

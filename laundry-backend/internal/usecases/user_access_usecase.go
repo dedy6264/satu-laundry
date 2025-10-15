@@ -54,20 +54,9 @@ func (u *userAccessUsecase) GetAllUserAccess() ([]entities.UserAccess, error) {
 	return u.userAccessRepo.FindAll()
 }
 
-func (u *userAccessUsecase) GetAllUserAccessDataTables(request entities.DataTablesRequest) (*entities.DataTablesResponse, error) {
-	// For simplicity, we'll use default pagination values
-	// In a real implementation, you would parse these from the request
-	limit := request.Length
-	if limit <= 0 {
-		limit = 10
-	}
+func (u *userAccessUsecase) GetAllUserAccessDataTables(request entities.DTRequest[entities.UserAccess]) (*entities.DataTablesResponse, error) {
 
-	offset := request.Start
-	if offset < 0 {
-		offset = 0
-	}
-
-	accesses, totalCount, err := u.userAccessRepo.FindAllWithPagination(limit, offset)
+	accesses, totalCount, err := u.userAccessRepo.FindAllWithPagination(request)
 	if err != nil {
 		return nil, err
 	}
@@ -169,3 +158,34 @@ func (u *userAccessUsecase) AuthenticateUser(request entities.UserLoginRequest) 
 
 	return response, nil
 }
+
+// func (u *userAccessUsecase) GetDataAccess(userID int) (int, int, error) {
+// 	userAccess, err := u.userAccessRepo.FindByID(userID)
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			return 0, 0, errors.New("invalid userAccess")
+// 		}
+// 		return 0, 0, err
+// 	}
+// 	// 2. get outlet
+// 	if userAccess.ReferenceLevel != "cabang" {
+// 		switch userAccess.ReferenceLevel {
+// 		case "pegawai":
+// 			employee, err := u.employeeRepo.FindByID(userAccess.ReferenceID)
+// 			if err != nil {
+// 				return 0, 0, err
+// 			}
+// 			outletId = employee.OutletID
+// 			brandId = employee.BrandID
+// 		case "outlet":
+// 			outlet, err := u.outletRepo.FindByID(userAccess.ReferenceID)
+// 			if err != nil {
+// 				return 0, 0, err
+// 			}
+// 			outletId = outlet.ID
+// 			brandId = outlet.BrandID
+// 		default:
+// 			return 0, 0, errors.New("Invalid Reference Level")
+// 		}
+// 	}
+// }

@@ -2,9 +2,11 @@ package repositories
 
 import (
 	"database/sql"
-	"laundry-backend/internal/entities"
-
 	"fmt"
+	"laundry-backend/internal/entities"
+	"strconv"
+	"strings"
+
 	"time"
 )
 
@@ -28,7 +30,6 @@ func (r *customerPostgresRepository) Create(customer *entities.Customer) error {
 	// Insert into pelanggan table
 	customerQuery := `INSERT INTO pelanggan (nama_lengkap, email, nomor_hp, alamat, created_at, updated_at) 
 	          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_pelanggan`
-	fmt.Println("::", customerQuery)
 	now := time.Now()
 	err = tx.QueryRow(customerQuery, customer.Name, customer.Email, customer.Phone, customer.Address, now, now).Scan(&customer.ID)
 	if err != nil {
@@ -126,59 +127,34 @@ func (r *customerPostgresRepository) FindAll() ([]entities.Customer, error) {
 	return customers, nil
 }
 
-func (r *customerPostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Customer, int, int, error) {
+func (r *customerPostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.Customer]) ([]entities.Customer, int, error) {
 	baseQuery := `SELECT p.id_pelanggan, po.id_outlet, p.nama_lengkap, p.email, p.nomor_hp, p.alamat, p.created_at, p.updated_at 
 	              FROM pelanggan p
-				  JOIN pelanggan_outlet po ON p.id_pelanggan = po.id_pelanggan`
+				  JOIN pelanggan_outlet po ON p.id_pelanggan = po.id_pelanggan where true `
 	countQuery := "SELECT COUNT(*) FROM pelanggan p JOIN pelanggan_outlet po ON p.id_pelanggan = po.id_pelanggan"
-
-	var args []interface{}
-	argIndex := 1
-
-	// Add search condition if provided
-	if search != "" {
-		baseQuery += " WHERE LOWER(p.nama_lengkap) LIKE $1 OR LOWER(p.email) LIKE $1 OR p.nomor_hp LIKE $1"
-		countQuery += " WHERE LOWER(p.nama_lengkap) LIKE $1 OR LOWER(p.email) LIKE $1 OR p.nomor_hp LIKE $1"
-		args = append(args, "%"+search+"%")
-		argIndex++
+	if request.Data.ID != 0 {
+		baseQuery += ` and p.id_pelanggan = ` + strconv.Itoa(request.Data.ID)
 	}
-
-	// Add ordering
-	dbOrderBy := "p.id_pelanggan" // default
-	switch orderBy {
-	case "id_pelanggan":
-		dbOrderBy = "p.id_pelanggan"
-	case "id_outlet":
-		dbOrderBy = "po.id_outlet"
-	case "nama_lengkap":
-		dbOrderBy = "p.nama_lengkap"
-	case "email":
-		dbOrderBy = "p.email"
-	case "nomor_hp":
-		dbOrderBy = "p.nomor_hp"
-	case "alamat":
-		dbOrderBy = "p.alamat"
-	case "created_at":
-		dbOrderBy = "p.created_at"
-	case "updated_at":
-		dbOrderBy = "p.updated_at"
+	if request.Data.OutletID != 0 {
+		baseQuery += ` and p.id_outlet = ` + strconv.Itoa(request.Data.OutletID)
 	}
-
-	// Validate order direction
-	if orderDir != "asc" && orderDir != "desc" {
-		orderDir = "asc"
+	if request.Data.Name != "" {
+		baseQuery += ` and p.nama_lengkap ILIKE '%` + strings.ToUpper(request.Data.Name) + `%' `
 	}
-
-	baseQuery += " ORDER BY " + dbOrderBy + " " + orderDir
-
-	// Add pagination
-	baseQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
-	args = append(args, limit, offset)
+	if request.OrderBy != "" {
+		baseQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		baseQuery += ` ORDER BY p.id_pelanggan ASC`
+	}
+	if request.Length != 0 {
+		baseQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
+	}
 
 	// Execute the data query
-	rows, err := r.db.Query(baseQuery, args...)
+	fmt.Println(baseQuery)
+	rows, err := r.db.Query(baseQuery)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -188,30 +164,19 @@ func (r *customerPostgresRepository) FindAllWithPagination(limit, offset int, se
 		err := rows.Scan(&customer.ID, &customer.OutletID, &customer.Name, &customer.Email,
 			&customer.Phone, &customer.Address, &customer.CreatedAt, &customer.UpdatedAt)
 		if err != nil {
-			return nil, 0, 0, err
+			return nil, 0, err
 		}
 		customers = append(customers, *customer)
 	}
 
 	// Execute the count query
-	var recordsTotal, recordsFiltered int
-	err = r.db.QueryRow(countQuery, args[:len(args)-2]...).Scan(&recordsTotal)
+	var recordsTotal int
+	err = r.db.QueryRow(countQuery).Scan(&recordsTotal)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 
-	// If search is applied, we need to get the filtered count
-	if search != "" && len(args[:len(args)-2]) > 0 {
-		searchArgs := args[:len(args)-2] // Remove limit and offset args
-		err = r.db.QueryRow(countQuery, searchArgs...).Scan(&recordsFiltered)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-	} else {
-		recordsFiltered = recordsTotal
-	}
-
-	return customers, recordsTotal, recordsFiltered, nil
+	return customers, recordsTotal, nil
 }
 
 func (r *customerPostgresRepository) Update(customer *entities.Customer) error {

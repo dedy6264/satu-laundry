@@ -5,7 +5,6 @@ import (
 	"laundry-backend/internal/usecases"
 	"laundry-backend/internal/utils"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -23,7 +22,7 @@ func NewServiceCategoryHandler(serviceCategoryUsecase usecases.ServiceCategoryUs
 
 func (h *ServiceCategoryHandler) CreateServiceCategory(c echo.Context) error {
 	var (
-		request entities.CreateServiceCategoryRequest
+		request entities.ServiceCategory
 		svcName = "CreateServiceCategory"
 	)
 
@@ -42,35 +41,10 @@ func (h *ServiceCategoryHandler) CreateServiceCategory(c echo.Context) error {
 	return MessageResponse(c, http.StatusCreated, "Service category created successfully")
 }
 
-func (h *ServiceCategoryHandler) GetServiceCategoryByID(c echo.Context) error {
-	var (
-		svcName = "GetServiceCategoryByID"
-	)
-
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utils.LoggMsg(svcName, "Invalid service category ID", err)
-		return ErrorResponse(c, http.StatusBadRequest, "Invalid service category ID", err.Error())
-	}
-
-	category, err := h.serviceCategoryUsecase.GetServiceCategoryByID(id)
-	if err != nil {
-		utils.LoggMsg(svcName, "Failed to get service category", err)
-		return ErrorResponse(c, http.StatusInternalServerError, "Failed to get service category", err.Error())
-	}
-
-	if category == nil {
-		utils.LoggMsg(svcName, "Service category not found", nil)
-		return ErrorResponse(c, http.StatusNotFound, "Service category not found", "Service category with given ID does not exist")
-	}
-
-	return SuccessResponse(c, http.StatusOK, "Service category retrieved successfully", category)
-}
-
 func (h *ServiceCategoryHandler) GetAllServiceCategories(c echo.Context) error {
 	var (
 		svcName = "GetAllServiceCategories"
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.ServiceCategory]
 	)
 
 	if err := c.Bind(&request); err != nil {
@@ -90,14 +64,8 @@ func (h *ServiceCategoryHandler) GetAllServiceCategories(c echo.Context) error {
 func (h *ServiceCategoryHandler) UpdateServiceCategory(c echo.Context) error {
 	var (
 		svcName = "UpdateServiceCategory"
-		request entities.UpdateServiceCategoryRequest
+		request entities.ServiceCategory
 	)
-
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utils.LoggMsg(svcName, "Invalid service category ID", err)
-		return ErrorResponse(c, http.StatusBadRequest, "Invalid service category ID", err.Error())
-	}
 
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Invalid request format", err)
@@ -106,7 +74,7 @@ func (h *ServiceCategoryHandler) UpdateServiceCategory(c echo.Context) error {
 
 	request.Name = strings.ToUpper(request.Name)
 
-	if err := h.serviceCategoryUsecase.UpdateServiceCategory(id, request); err != nil {
+	if err := h.serviceCategoryUsecase.UpdateServiceCategory(request); err != nil {
 		utils.LoggMsg(svcName, "Failed to update service category", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to update service category", err.Error())
 	}
@@ -117,15 +85,15 @@ func (h *ServiceCategoryHandler) UpdateServiceCategory(c echo.Context) error {
 func (h *ServiceCategoryHandler) DeleteServiceCategory(c echo.Context) error {
 	var (
 		svcName = "DeleteServiceCategory"
+		request entities.ServiceCategory
 	)
 
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utils.LoggMsg(svcName, "Invalid service category ID", err)
-		return ErrorResponse(c, http.StatusBadRequest, "Invalid service category ID", err.Error())
+	if err := c.Bind(&request); err != nil {
+		utils.LoggMsg(svcName, "Invalid request format", err)
+		return ErrorResponse(c, http.StatusBadRequest, "Invalid request format", err.Error())
 	}
 
-	if err := h.serviceCategoryUsecase.DeleteServiceCategory(id); err != nil {
+	if err := h.serviceCategoryUsecase.DeleteServiceCategory(request.ID); err != nil {
 		utils.LoggMsg(svcName, "Failed to delete service category", err)
 		return ErrorResponse(c, http.StatusInternalServerError, "Failed to delete service category", err.Error())
 	}

@@ -2,9 +2,8 @@ package repositories
 
 import (
 	"database/sql"
-	"fmt"
 	"laundry-backend/internal/entities"
-	"strings"
+	"strconv"
 )
 
 type paymentMethodPostgresRepository struct {
@@ -85,56 +84,26 @@ func (r *paymentMethodPostgresRepository) FindAll() ([]entities.PaymentMethod, e
 	return paymentMethods, nil
 }
 
-func (r *paymentMethodPostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.PaymentMethod, int, int, error) {
-	// Validate orderBy field to prevent SQL injection
-	validFields := map[string]bool{
-		"id":           true,
-		"nama_metode":  true,
-		"url":          true,
-		"merchant_fee": true,
-		"admin_fee":    true,
-		"status":       true,
-		"created_at":   true,
-		"updated_at":   true,
-	}
-
-	// Default to id if orderBy is not valid
-	if !validFields[orderBy] {
-		orderBy = "id"
-	}
-
-	// Default to asc if orderDir is not valid
-	if orderDir != "asc" && orderDir != "desc" {
-		orderDir = "asc"
-	}
+func (r *paymentMethodPostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.PaymentMethod]) ([]entities.PaymentMethod, int, error) {
 
 	// Build the query
-	baseQuery := `SELECT id, nama_metode, url, s_key, m_key, merchant_fee, admin_fee, status, created_at, updated_at,  created_by, updated_by FROM metode_pembayaran`
+	baseQuery := `SELECT id, nama_metode, url, s_key, m_key, merchant_fee, admin_fee, status, created_at, updated_at,  created_by, updated_by FROM metode_pembayaran where true `
 	countQuery := `SELECT COUNT(*) FROM metode_pembayaran`
-
-	var args []interface{}
-	argIndex := 1
-
-	// Add search condition if provided
-	if search != "" {
-		search = strings.ToLower(search)
-		baseQuery += fmt.Sprintf(` WHERE LOWER(nama_metode) LIKE $%d`, argIndex)
-		countQuery += fmt.Sprintf(` WHERE LOWER(nama_metode) LIKE $%d`, argIndex)
-		args = append(args, "%"+search+"%")
-		argIndex++
+	if request.Data.ID != 0 {
+		baseQuery += ` and id = ` + strconv.Itoa(request.Data.ID)
 	}
-
-	// Add ordering
-	baseQuery += fmt.Sprintf(` ORDER BY %s %s`, orderBy, strings.ToUpper(orderDir))
-
-	// Add pagination
-	baseQuery += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, argIndex, argIndex+1)
-	args = append(args, limit, offset)
-
+	if request.OrderBy != "" {
+		baseQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		baseQuery += ` ORDER BY id ASC`
+	}
+	if request.Length != 0 {
+		baseQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
+	}
 	// Execute the data query
-	rows, err := r.db.Query(baseQuery, args...)
+	rows, err := r.db.Query(baseQuery)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -156,30 +125,19 @@ func (r *paymentMethodPostgresRepository) FindAllWithPagination(limit, offset in
 			&paymentMethod.UpdatedBy,
 		)
 		if err != nil {
-			return nil, 0, 0, err
+			return nil, 0, err
 		}
 		paymentMethods = append(paymentMethods, paymentMethod)
 	}
 
 	// Execute the count query
-	var recordsTotal, recordsFiltered int
-	err = r.db.QueryRow(countQuery, args[:len(args)-2]...).Scan(&recordsTotal)
+	var recordsTotal int
+	err = r.db.QueryRow(countQuery).Scan(&recordsTotal)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 
-	// If search is applied, we need to get the filtered count
-	if search != "" {
-		searchArgs := args[:len(args)-2] // Remove limit and offset args
-		err = r.db.QueryRow(countQuery, searchArgs...).Scan(&recordsFiltered)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-	} else {
-		recordsFiltered = recordsTotal
-	}
-
-	return paymentMethods, recordsTotal, recordsFiltered, nil
+	return paymentMethods, recordsTotal, nil
 }
 
 func (r *paymentMethodPostgresRepository) Update(paymentMethod *entities.PaymentMethod) error {

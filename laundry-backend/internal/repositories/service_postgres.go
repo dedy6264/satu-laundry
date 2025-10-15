@@ -2,8 +2,8 @@ package repositories
 
 import (
 	"database/sql"
-	"fmt"
 	"laundry-backend/internal/entities"
+	"strconv"
 )
 
 type servicePostgresRepository struct {
@@ -18,11 +18,11 @@ func NewServiceRepository(db *sql.DB) ServiceRepository {
 
 func (r *servicePostgresRepository) Create(service *entities.Service) error {
 	query := `
-		INSERT INTO paket_layanan (id_brand, id_kategori, nama_layanan, deskripsi, harga_satuan, satuan_durasi, durasi_pengerjaan, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+		INSERT INTO paket_layanan (id_brand, id_kategori, nama_layanan, deskripsi,satuan, harga_satuan, satuan_durasi, durasi_pengerjaan, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7,$8, NOW(), NOW())
 		RETURNING id_layanan`
 
-	err := r.db.QueryRow(query, service.BrandID, service.CategoryID, service.Name, service.Description, service.Price, service.Unit, service.Estimation).
+	err := r.db.QueryRow(query, service.BrandID, service.CategoryID, service.Name, service.Description, service.Satuan, service.Price, service.Unit, service.Estimation).
 		Scan(&service.ID)
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func (r *servicePostgresRepository) Create(service *entities.Service) error {
 
 func (r *servicePostgresRepository) FindByID(id int) (*entities.Service, error) {
 	query := `
-		SELECT l.id_layanan, l.id_brand, l.id_kategori, l.nama_layanan, l.deskripsi, l.harga_satuan, l.satuan_durasi, l.durasi_pengerjaan, l.created_at, l.updated_at
+		SELECT l.id_layanan, l.id_brand, l.id_kategori, l.nama_layanan, l.deskripsi,l.satuan, l.harga_satuan, l.satuan_durasi, l.durasi_pengerjaan, l.created_at, l.updated_at
 		FROM paket_layanan l
 		WHERE l.id_layanan = $1`
 
@@ -44,6 +44,7 @@ func (r *servicePostgresRepository) FindByID(id int) (*entities.Service, error) 
 		&service.CategoryID,
 		&service.Name,
 		&service.Description,
+		&service.Satuan,
 		&service.Price,
 		&service.Unit,
 		&service.Estimation,
@@ -60,12 +61,21 @@ func (r *servicePostgresRepository) FindByID(id int) (*entities.Service, error) 
 	return &service, nil
 }
 
-func (r *servicePostgresRepository) FindAll() ([]entities.Service, error) {
+func (r *servicePostgresRepository) FindAll(request entities.Service) ([]entities.Service, error) {
 	query := `
-		SELECT l.id_layanan, l.id_brand, l.id_kategori, l.nama_layanan, l.deskripsi, l.harga_satuan, l.satuan_durasi, l.durasi_pengerjaan, l.created_at, l.updated_at
-		FROM paket_layanan l
-		ORDER BY l.id_layanan`
-
+		SELECT id_layanan, id_brand, id_kategori, nama_layanan, deskripsi,satuan, harga_satuan, satuan_durasi, durasi_pengerjaan, created_at, updated_at
+		FROM paket_layanan l where true 
+		`
+	if request.ID != 0 {
+		query += ` and id_layanan = ` + strconv.Itoa(request.ID)
+	}
+	if request.BrandID != 0 {
+		query += ` and id_brand = ` + strconv.Itoa(request.BrandID)
+	}
+	if request.CategoryID != 0 {
+		query += ` and id_kategori = ` + strconv.Itoa(request.CategoryID)
+	}
+	query += ` ORDER BY id_layanan`
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -81,6 +91,7 @@ func (r *servicePostgresRepository) FindAll() ([]entities.Service, error) {
 			&service.CategoryID,
 			&service.Name,
 			&service.Description,
+			&service.Satuan,
 			&service.Price,
 			&service.Unit,
 			&service.Estimation,
@@ -92,54 +103,42 @@ func (r *servicePostgresRepository) FindAll() ([]entities.Service, error) {
 		}
 		services = append(services, service)
 	}
+	if len(services) == 0 {
 
+		return nil, sql.ErrNoRows
+	}
 	return services, nil
 }
 
-func (r *servicePostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Service, int, error) {
+func (r *servicePostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.Service]) ([]entities.Service, int, error) {
 	// Base query
-	baseQuery := `
-		FROM paket_layanan l`
-
-	// Count query
-	countQuery := "SELECT COUNT(*) " + baseQuery
-
-	// Data query
-	dataQuery := `
-		SELECT l.id_layanan, l.id_brand, l.id_kategori, l.nama_layanan, l.deskripsi, l.harga_satuan, l.satuan_durasi, l.durasi_pengerjaan, l.created_at, l.updated_at
-		` + baseQuery
-
-	// Search condition
-	var args []interface{}
-	if search != "" {
-		countQuery += " WHERE l.nama_layanan ILIKE $1"
-		dataQuery += " WHERE l.nama_layanan ILIKE $1"
-		args = append(args, "%"+search+"%")
+	baseQuery := ` FROM paket_layanan l where true `
+	getQuery := ` SELECT l.id_layanan, l.id_brand, l.id_kategori, l.nama_layanan, l.deskripsi,l.satuan, l.harga_satuan, l.satuan_durasi, l.durasi_pengerjaan, l.created_at, l.updated_at  ` + baseQuery
+	countQuery := `SELECT COUNT(*) ` + baseQuery
+	if request.Data.BrandID != 0 {
+		getQuery += ` and id_brand = ` + strconv.Itoa(request.Data.BrandID)
+	}
+	if request.Data.CategoryID != 0 {
+		getQuery += ` and id_kategori = ` + strconv.Itoa(request.Data.CategoryID)
+	}
+	if request.OrderBy != "" {
+		getQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		getQuery += ` ORDER BY l.id_layanan ASC`
+	}
+	if request.Length != 0 {
+		getQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
 	}
 
 	// Get total count
 	var totalCount int
-	countArgs := make([]interface{}, len(args))
-	copy(countArgs, args)
-	err := r.db.QueryRow(countQuery, countArgs...).Scan(&totalCount)
+	err := r.db.QueryRow(countQuery).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Add ordering
-	if orderBy == "" {
-		orderBy = "l.id_layanan"
-	}
-	if orderDir == "" {
-		orderDir = "ASC"
-	}
-	dataQuery += fmt.Sprintf(" ORDER BY %s %s LIMIT $%d OFFSET $%d", orderBy, orderDir, len(args)+1, len(args)+2)
-
-	// Add limit and offset
-	args = append(args, limit, offset)
-
 	// Execute data query
-	rows, err := r.db.Query(dataQuery, args...)
+	rows, err := r.db.Query(getQuery)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -154,6 +153,7 @@ func (r *servicePostgresRepository) FindAllWithPagination(limit, offset int, sea
 			&service.CategoryID,
 			&service.Name,
 			&service.Description,
+			&service.Satuan,
 			&service.Price,
 			&service.Unit,
 			&service.Estimation,
@@ -187,7 +187,7 @@ func (r *servicePostgresRepository) Delete(id int) error {
 
 func (r *servicePostgresRepository) FindByCategoryID(categoryID int) ([]entities.Service, error) {
 	query := `
-		SELECT l.id_layanan, l.id_brand, l.id_kategori, l.nama_layanan, l.deskripsi, l.harga_satuan, l.satuan_durasi, l.durasi_pengerjaan, l.created_at, l.updated_at
+		SELECT l.id_layanan, l.id_brand, l.id_kategori, l.nama_layanan, l.deskripsi,l.satuan, l.harga_satuan, l.satuan_durasi, l.durasi_pengerjaan, l.created_at, l.updated_at
 		FROM paket_layanan l
 		WHERE l.id_kategori = $1
 		ORDER BY l.id_layanan`
@@ -207,6 +207,7 @@ func (r *servicePostgresRepository) FindByCategoryID(categoryID int) ([]entities
 			&service.CategoryID,
 			&service.Name,
 			&service.Description,
+			&service.Satuan,
 			&service.Price,
 			&service.Unit,
 			&service.Estimation,

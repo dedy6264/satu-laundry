@@ -72,7 +72,7 @@ func (h *EmployeeHandler) GetEmployeeByID(c echo.Context) error {
 func (h *EmployeeHandler) GetAllEmployees(c echo.Context) error {
 	var (
 		svcName = "GetAllEmployees"
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.Employee]
 	)
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Invalid request format", err)
@@ -91,7 +91,7 @@ func (h *EmployeeHandler) GetAllEmployees(c echo.Context) error {
 func (h *EmployeeHandler) GetAllEmployeesDataTables(c echo.Context) error {
 	var (
 		svcName = "GetAllEmployeesDataTables"
-		request entities.DataTablesRequest
+		request entities.DTRequest[entities.Employee]
 	)
 	if err := c.Bind(&request); err != nil {
 		utils.LoggMsg(svcName, "Invalid request format", err)

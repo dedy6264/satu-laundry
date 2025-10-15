@@ -3,8 +3,7 @@ package repositories
 import (
 	"database/sql"
 	"laundry-backend/internal/entities"
-	"fmt"
-	"strings"
+	"strconv"
 )
 
 type brandPostgresRepository struct {
@@ -79,70 +78,26 @@ func (r *brandPostgresRepository) FindAll() ([]entities.Brand, error) {
 	return brands, nil
 }
 
-func (r *brandPostgresRepository) FindAllWithPagination(limit, offset int, search string, orderBy string, orderDir string) ([]entities.Brand, int, int, error) {
-	// Validate orderBy field to prevent SQL injection
-	validFields := map[string]bool{
-		"id":          true,
-		"name":        true,
-		"description": true,
-		"pic_name":    true,
-		"pic_email":   true,
-		"created_at":  true,
-		"updated_at":  true,
-	}
-	
-	// Map field names to database column names
-	fieldMap := map[string]string{
-		"id":          "id_brand",
-		"name":        "nama_brand",
-		"description": "deskripsi",
-		"pic_name":    "pic_nama",
-		"pic_email":   "pic_email",
-		"created_at":  "created_at",
-		"updated_at":  "updated_at",
-	}
-	
-	// Default to id if orderBy is not valid
-	if !validFields[orderBy] {
-		orderBy = "id"
-	}
-	
-	// Default to asc if orderDir is not valid
-	if orderDir != "asc" && orderDir != "desc" {
-		orderDir = "asc"
-	}
-	
+func (r *brandPostgresRepository) FindAllWithPagination(request entities.DTRequest[entities.Brand]) ([]entities.Brand, int, error) {
+
 	// Build the query
-	baseQuery := `SELECT id_brand, nama_brand, deskripsi, pic_nama, pic_email, pic_telepon, logo_url, created_at, updated_at FROM brand`
+	getQuery := `SELECT id_brand, nama_brand, deskripsi, pic_nama, pic_email, pic_telepon, logo_url, created_at, updated_at FROM brand where true `
 	countQuery := `SELECT COUNT(*) FROM brand`
-	
-	var args []interface{}
-	argIndex := 1
-	
-	// Add search condition if provided
-	if search != "" {
-		search = strings.ToLower(search)
-		baseQuery += fmt.Sprintf(` WHERE LOWER(nama_brand) LIKE $%d OR LOWER(pic_nama) LIKE $%d OR LOWER(pic_email) LIKE $%d`, argIndex, argIndex+1, argIndex+2)
-		countQuery += fmt.Sprintf(` WHERE LOWER(nama_brand) LIKE $%d OR LOWER(pic_nama) LIKE $%d OR LOWER(pic_email) LIKE $%d`, argIndex, argIndex+1, argIndex+2)
-		args = append(args, "%"+search+"%", "%"+search+"%", "%"+search+"%")
-		argIndex += 3
+	if request.Data.ID != 0 {
+		getQuery += ` and.id_brand = ` + strconv.Itoa(request.Data.ID)
 	}
-	
-	// Add ordering
-	dbOrderBy := fieldMap[orderBy]
-	if dbOrderBy == "" {
-		dbOrderBy = "id_brand"
+	if request.OrderBy != "" {
+		getQuery += ` ORDER BY ` + request.OrderBy + ` ` + request.SortBy
+	} else {
+		getQuery += ` ORDER BY id_transaksi ASC`
 	}
-	baseQuery += fmt.Sprintf(` ORDER BY %s %s`, dbOrderBy, strings.ToUpper(orderDir))
-	
-	// Add pagination
-	baseQuery += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, argIndex, argIndex+1)
-	args = append(args, limit, offset)
-	
+	if request.Length != 0 {
+		getQuery += ` LIMIT ` + strconv.Itoa(request.Length) + ` OFFSET ` + strconv.Itoa(request.Start)
+	}
 	// Execute the data query
-	rows, err := r.db.Query(baseQuery, args...)
+	rows, err := r.db.Query(getQuery)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -161,30 +116,19 @@ func (r *brandPostgresRepository) FindAllWithPagination(limit, offset int, searc
 			&brand.UpdatedAt,
 		)
 		if err != nil {
-			return nil, 0, 0, err
+			return nil, 0, err
 		}
 		brands = append(brands, brand)
 	}
-	
-	// Execute the count query
-	var recordsTotal, recordsFiltered int
-	err = r.db.QueryRow(countQuery).Scan(&recordsTotal)
+
+	// Get total count
+	var totalCount int
+	err = r.db.QueryRow(countQuery).Scan(&totalCount)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
-	
-	// If search is applied, we need to get the filtered count
-	if search != "" {
-		searchArgs := args[:len(args)-2] // Remove limit and offset args
-		err = r.db.QueryRow(countQuery, searchArgs...).Scan(&recordsFiltered)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-	} else {
-		recordsFiltered = recordsTotal
-	}
-	
-	return brands, recordsTotal, recordsFiltered, nil
+
+	return brands, totalCount, nil
 }
 
 func (r *brandPostgresRepository) Update(brand *entities.Brand) error {
